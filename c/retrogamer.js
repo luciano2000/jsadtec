@@ -1,4 +1,4 @@
-setGPT(window.googletag);
+
 
 function setGPT(g) {
 
@@ -27,3 +27,5 @@ function setGPT(g) {
     s.setAttribute("data-cfasync", "false");
     h.appendChild(s);
 })();
+
+setGPT(window.googletag);
