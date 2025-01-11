@@ -1,3 +1,5 @@
+setGPT(window.googletag);
+
 function setGPT(g) {
 
         const h = document.head || document.getElementsByTagName('head')[0];
