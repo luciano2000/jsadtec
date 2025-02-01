@@ -10,7 +10,7 @@
 
         // Após carregar GPT.js, carrega o banner.js
         var bannerScript = document.createElement("script");
-        bannerScript.src = "/caminho/para/banner.js"; // Atualize para o caminho correto
+        bannerScript.src = "//t.ad.tec.br/banner.js"; // Atualize para o caminho correto
         bannerScript.async = true;
         document.head.appendChild(bannerScript);
 
