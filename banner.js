@@ -49,8 +49,6 @@ googletag.cmd.push(function(){
               var divbanner = document.querySelector("#"+id);
               value = divbanner.dataset.position;
               divbanner.style.height = event.size[1] + 'px';
-
-              console.log("data-set: " + value);
               if ((value == "H1")||(value == "HT")){
                 divbanner.style.width = event.size[0] + 'px';
                 divbanner.style.marginLeft = 'auto';
