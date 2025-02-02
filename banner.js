@@ -47,7 +47,7 @@ googletag.cmd.push(function(){
             var id = slot.getSlotElementId();
             if (id.indexOf("anchor") == -1) {
               var divbanner = document.querySelector("#"+id);
-              value = divbanner.dataset.pos;
+              value = divbanner.dataset.position;
               divbanner.style.height = event.size[1] + 'px';
 
               console.log("data-set: " + value);
