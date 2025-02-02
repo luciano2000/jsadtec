@@ -1,7 +1,7 @@
 (function() {
     // Carrega o Google Ad Manager (GPT.js)
     var gptScript = document.createElement("script");
-    gptScript.src = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
+    gptScript.src = "//securepubads.g.doubleclick.net/tag/js/gpt.js";
     gptScript.async = true;
     document.head.appendChild(gptScript);
 
