@@ -114,9 +114,5 @@ if(slotAnchorR){
   googletag.pubads().refresh([slotAnchorR]);
 } */
    
-  googletag.cmd.push(function() {
-    googletag.defineOutOfPageSlot('/1013246/culturapop/lightbox', 'lightbox').addService(googletag.pubads());
-    googletag.enableServices();
-  });
-    
+  
   }); 
