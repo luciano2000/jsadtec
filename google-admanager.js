@@ -66,13 +66,18 @@
       { viewport: [0, 0], sizes: [] }, // Sem anúncios em mobile
       { viewport: [1000, 0], sizes: [{ width: 300, height: 250 }, { width: 300, height: 600 }] }
     ],
+    'meio': [
+      { viewport: [0, 0], sizes: [{ width: 320, height: 50 }, { width: 320, height: 100 }] },
+      { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] },
+      { viewport: [1050, 0], sizes: [{ width: 970, height: 90 }, { width: 970, height: 250 }] }
+    ],
     'rodape': [
       { viewport: [0, 0], sizes: [{ width: 320, height: 50 }] },
       { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] }
     ],
     'inread': [
       { viewport: [0, 0], sizes: [{ width: 300, height: 250 }] },
-      { viewport: [750, 0], sizes: [{ width: 640, height: 360 }] }
+      { viewport: [750, 0], sizes: [{ width: 300, height: 250 }, {width: 336, height: 280}] }
     ],
     // Posição padrão caso não seja especificada
     'default': [
