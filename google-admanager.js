@@ -64,7 +64,11 @@
     ],
     'lateral': [
       { viewport: [0, 0], sizes: [] }, // Sem anúncios em mobile
-      { viewport: [1000, 0], sizes: [{ width: 300, height: 250 }, { width: 300, height: 600 }] }
+      { viewport: [1000, 0], sizes: [{ width: 300, height: 250 }] }
+    ],
+    'barra': [
+      { viewport: [0, 0], sizes: [] }, // Sem anúncios em mobile
+      { viewport: [1000, 0], sizes: [{ width: 300, height: 600 }] }
     ],
     'meio': [
       { viewport: [0, 0], sizes: [{ width: 320, height: 50 }, { width: 320, height: 100 }] },
