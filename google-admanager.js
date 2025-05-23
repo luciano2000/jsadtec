@@ -49,7 +49,9 @@
     adUnitPath: '/rede/site',
     collapseEmptyDivs: true,
     enableSingleRequest: true,
-    disableInitialLoad: false
+    disableInitialLoad: false,
+    enableLazyLoad: true
+
   };
 
   /**
@@ -143,6 +145,15 @@
             if (this.config.disableInitialLoad) {
               this.googletag.pubads().disableInitialLoad();
             }
+            
+            if (this.config.enableLazyLoad) {
+              this.googletag.pubads().enableLazyLoad({
+              fetchMarginPercent: 200,
+              renderMarginPercent: 100,
+              mobileScaling: 2.0,
+              });
+            }
+            
             
             // Ativa os serviços
             this.googletag.enableServices();
