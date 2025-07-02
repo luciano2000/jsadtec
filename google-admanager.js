@@ -1,5 +1,5 @@
 // Google AdManager - Script Simplificado
-// Versão 1.0.0
+// Versão 1.1.0 - Com centralização dinâmica de anúncios
 
 /**
  * Configuração do AdManager
@@ -9,6 +9,7 @@
  * @property {boolean} [collapseEmptyDivs=true] - Colapsar divs vazias
  * @property {boolean} [enableSingleRequest=true] - Habilitar requisição única
  * @property {boolean} [disableInitialLoad=false] - Desabilitar carregamento inicial
+ * @property {boolean} [centering=false] - Centralizar anúncios automaticamente
  */
 
 /**
@@ -50,8 +51,7 @@
     collapseEmptyDivs: true,
     enableSingleRequest: true,
     disableInitialLoad: false,
-    enableLazyLoad: true
-
+    centering: false
   };
 
   /**
@@ -106,6 +106,7 @@
       this.initialized = false;
       this.googletag = null;
       this.resizeTimeout = null;
+      this.slotRenderEndedListeners = new Map();
     }
 
     /**
@@ -135,10 +136,6 @@
             if (this.config.enableSingleRequest) {
               this.googletag.pubads().enableSingleRequest();
             }
-            // Habilita o Centering se configurado
-            if (this.config.setCentering) {
-            googletag.pubads().setCentering(true);
-            }
             
             // Colapsa divs vazias se configurado
             if (this.config.collapseEmptyDivs) {
@@ -150,14 +147,12 @@
               this.googletag.pubads().disableInitialLoad();
             }
             
-            if (this.config.enableLazyLoad) {
-              this.googletag.pubads().enableLazyLoad({
-              fetchMarginPercent: 200,
-              renderMarginPercent: 100,
-              mobileScaling: 2.0,
+            // Configura o evento slotRenderEnded para centralização
+            if (this.config.centering) {
+              this.googletag.pubads().addEventListener('slotRenderEnded', (event) => {
+                this.handleSlotRenderEnded(event);
               });
             }
-            
             
             // Ativa os serviços
             this.googletag.enableServices();
@@ -169,6 +164,85 @@
         
         document.head.appendChild(script);
       });
+    }
+
+    /**
+     * Manipula o evento slotRenderEnded para centralização
+     * @param {Event} event - Evento slotRenderEnded
+     */
+    handleSlotRenderEnded(event) {
+      // Obtém o ID do slot
+      const slotId = event.slot.getSlotElementId();
+      
+      // Verifica se o slot existe
+      const element = document.getElementById(slotId);
+      if (!element) return;
+      
+      // Verifica se o anúncio está vazio
+      if (event.isEmpty) return;
+      
+      // Obtém o tamanho do anúncio
+      const size = event.size;
+      
+      // Se o tamanho for um array [width, height]
+      if (Array.isArray(size) && size.length === 2) {
+        const [width, height] = size;
+        
+        // Centraliza o anúncio
+        this.centerAd(element, width, height);
+      }
+      
+      // Executa listeners personalizados
+      if (this.slotRenderEndedListeners.has(slotId)) {
+        const listeners = this.slotRenderEndedListeners.get(slotId);
+        listeners.forEach(listener => listener(event));
+      }
+    }
+
+    /**
+     * Centraliza um anúncio com base no tamanho real
+     * @param {HTMLElement} element - Elemento do anúncio
+     * @param {number} width - Largura do anúncio
+     * @param {number} height - Altura do anúncio
+     */
+    centerAd(element, width, height) {
+      // Verifica se o elemento existe
+      if (!element) return;
+      
+      // Obtém o contêiner pai
+      const parentWidth = element.parentElement ? element.parentElement.offsetWidth : window.innerWidth;
+      
+      // Se o anúncio for menor que o contêiner, centraliza
+      if (width < parentWidth) {
+        // Aplica estilos para centralização
+        element.style.margin = '0 auto';
+        element.style.display = 'block';
+        element.style.width = `${width}px`;
+        element.style.height = `${height}px`;
+        
+        // Procura por iframes dentro do elemento (comum em anúncios)
+        setTimeout(() => {
+          const iframes = element.querySelectorAll('iframe');
+          if (iframes.length > 0) {
+            iframes.forEach(iframe => {
+              // Centraliza o iframe se necessário
+              if (iframe.width && parseInt(iframe.width, 10) < parentWidth) {
+                iframe.style.margin = '0 auto';
+                iframe.style.display = 'block';
+              }
+            });
+          }
+          
+          // Procura por divs do Google dentro do elemento
+          const googleDivs = element.querySelectorAll('div[id^="google_ads_iframe_"]');
+          if (googleDivs.length > 0) {
+            googleDivs.forEach(div => {
+              div.style.margin = '0 auto';
+              div.style.display = 'block';
+            });
+          }
+        }, 100);
+      }
     }
 
     /**
@@ -354,6 +428,49 @@
     addPosition(position, mapping) {
       this.setPositionSizeMapping(position, mapping);
     }
+
+    /**
+     * Adiciona um listener para o evento slotRenderEnded
+     * @param {string} slotId - ID do slot
+     * @param {Function} listener - Função de callback
+     */
+    addSlotRenderEndedListener(slotId, listener) {
+      if (!this.slotRenderEndedListeners.has(slotId)) {
+        this.slotRenderEndedListeners.set(slotId, []);
+      }
+      
+      this.slotRenderEndedListeners.get(slotId).push(listener);
+    }
+
+    /**
+     * Centraliza manualmente um anúncio
+     * @param {string} slotId - ID do slot
+     */
+    centerAdManually(slotId) {
+      const element = document.getElementById(slotId);
+      if (!element) return;
+      
+      // Procura por iframes dentro do elemento
+      const iframes = element.querySelectorAll('iframe');
+      if (iframes.length > 0) {
+        const iframe = iframes[0];
+        const width = parseInt(iframe.width, 10) || iframe.offsetWidth;
+        const height = parseInt(iframe.height, 10) || iframe.offsetHeight;
+        
+        if (width && height) {
+          this.centerAd(element, width, height);
+        }
+      }
+    }
+
+    /**
+     * Centraliza todos os anúncios manualmente
+     */
+    centerAllAdsManually() {
+      this.slots.forEach((config, id) => {
+        this.centerAdManually(id);
+      });
+    }
   }
 
   // Cria uma instância global do AdManager
@@ -406,6 +523,14 @@
           childList: true,
           subtree: true
         });
+
+        // Se a centralização estiver ativada, configura um timeout para centralizar manualmente
+        // os anúncios que podem ter sido renderizados antes da configuração do listener
+        if (adManager.config.centering) {
+          setTimeout(() => {
+            adManager.centerAllAdsManually();
+          }, 1000);
+        }
       });
     },
     
@@ -432,6 +557,30 @@
      */
     addPosition: function(position, mapping) {
       adManager.addPosition(position, mapping);
+    },
+
+    /**
+     * Adiciona um listener para o evento slotRenderEnded
+     * @param {string} slotId - ID do slot
+     * @param {Function} listener - Função de callback
+     */
+    addSlotRenderEndedListener: function(slotId, listener) {
+      adManager.addSlotRenderEndedListener(slotId, listener);
+    },
+
+    /**
+     * Centraliza manualmente um anúncio
+     * @param {string} slotId - ID do slot
+     */
+    centerAd: function(slotId) {
+      adManager.centerAdManually(slotId);
+    },
+
+    /**
+     * Centraliza todos os anúncios manualmente
+     */
+    centerAllAds: function() {
+      adManager.centerAllAdsManually();
     }
   };
 
