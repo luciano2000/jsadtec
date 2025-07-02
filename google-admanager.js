@@ -135,6 +135,10 @@
             if (this.config.enableSingleRequest) {
               this.googletag.pubads().enableSingleRequest();
             }
+            // Habilita o Centering se configurado
+            if (this.config.setCentering) {
+            googletag.pubads().setCentering(true);
+            }
             
             // Colapsa divs vazias se configurado
             if (this.config.collapseEmptyDivs) {
