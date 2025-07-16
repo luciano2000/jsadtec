@@ -1,5 +1,5 @@
 // Google AdManager - Script Simplificado
-// Versão 1.1.0 - Com centralização dinâmica de anúncios
+// Versão 1.2.0 - Com suporte a banners maiores que o container e margem negativa
 
 /**
  * Configuração do AdManager
@@ -10,6 +10,8 @@
  * @property {boolean} [enableSingleRequest=true] - Habilitar requisição única
  * @property {boolean} [disableInitialLoad=false] - Desabilitar carregamento inicial
  * @property {boolean} [centering=false] - Centralizar anúncios automaticamente
+ * @property {boolean} [applyNegativeMargin=false] - Aplicar margem negativa para banners maiores que o container
+ * @property {Object} [marginConfig] - Configuração de margens negativas por posição
  */
 
 /**
@@ -51,9 +53,14 @@
     collapseEmptyDivs: true,
     enableSingleRequest: true,
     disableInitialLoad: false,
-    centering: false
+    centering: false,
+    applyNegativeMargin: false,
+    marginConfig: {
+      // Configuração de margem negativa por posição (em pixels)
+      // Exemplo: 'topo': { left: -20, right: -20 }
+    }
   };
-
+  
   /**
    * Mapeamento de posições para tamanhos de anúncios
    * @type {Object<string, AdSizeMapping[]>}
@@ -92,6 +99,7 @@
     ]
   };
 
+ 
   /**
    * Classe principal do AdManager
    */
@@ -107,6 +115,7 @@
       this.googletag = null;
       this.resizeTimeout = null;
       this.slotRenderEndedListeners = new Map();
+      this.slotSizes = new Map(); // Armazena os tamanhos reais dos slots renderizados
     }
 
     /**
@@ -147,12 +156,10 @@
               this.googletag.pubads().disableInitialLoad();
             }
             
-            // Configura o evento slotRenderEnded para centralização
-            if (this.config.centering) {
-              this.googletag.pubads().addEventListener('slotRenderEnded', (event) => {
-                this.handleSlotRenderEnded(event);
-              });
-            }
+            // Configura o evento slotRenderEnded para aplicar tamanho real e centralização
+            this.googletag.pubads().addEventListener('slotRenderEnded', (event) => {
+              this.handleSlotRenderEnded(event);
+            });
             
             // Ativa os serviços
             this.googletag.enableServices();
@@ -167,7 +174,7 @@
     }
 
     /**
-     * Manipula o evento slotRenderEnded para centralização
+     * Manipula o evento slotRenderEnded para aplicar tamanho real e centralização
      * @param {Event} event - Evento slotRenderEnded
      */
     handleSlotRenderEnded(event) {
@@ -188,8 +195,14 @@
       if (Array.isArray(size) && size.length === 2) {
         const [width, height] = size;
         
-        // Centraliza o anúncio
-        this.centerAd(element, width, height);
+        // Armazena o tamanho real do slot
+        this.slotSizes.set(slotId, { width, height });
+        
+        // Obtém a posição do elemento
+        const position = element.dataset.pos || 'default';
+        
+        // Aplica o tamanho real ao elemento
+        this.applyRealSize(element, width, height, position);
       }
       
       // Executa listeners personalizados
@@ -200,49 +213,78 @@
     }
 
     /**
-     * Centraliza um anúncio com base no tamanho real
+     * Aplica o tamanho real ao elemento e configura centralização/margem negativa
      * @param {HTMLElement} element - Elemento do anúncio
      * @param {number} width - Largura do anúncio
      * @param {number} height - Altura do anúncio
+     * @param {string} position - Posição do anúncio
      */
-    centerAd(element, width, height) {
+    applyRealSize(element, width, height, position) {
       // Verifica se o elemento existe
       if (!element) return;
       
       // Obtém o contêiner pai
-      const parentWidth = element.parentElement ? element.parentElement.offsetWidth : window.innerWidth;
+      const parent = element.parentElement;
+      const parentWidth = parent ? parent.offsetWidth : window.innerWidth;
       
-      // Se o anúncio for menor que o contêiner, centraliza
-      if (width < parentWidth) {
-        // Aplica estilos para centralização
-        element.style.margin = '0 auto';
-        element.style.display = 'block';
-        element.style.width = `${width}px`;
-        element.style.height = `${height}px`;
-        
-        // Procura por iframes dentro do elemento (comum em anúncios)
-        setTimeout(() => {
-          const iframes = element.querySelectorAll('iframe');
-          if (iframes.length > 0) {
-            iframes.forEach(iframe => {
-              // Centraliza o iframe se necessário
-              if (iframe.width && parseInt(iframe.width, 10) < parentWidth) {
-                iframe.style.margin = '0 auto';
-                iframe.style.display = 'block';
-              }
-            });
+      // Aplica o tamanho real ao elemento
+      element.style.width = `${width}px`;
+      element.style.height = `${height}px`;
+      
+      // Centraliza o anúncio se configurado
+      if (this.config.centering) {
+        if (width <= parentWidth) {
+          // Se o anúncio for menor que o contêiner, centraliza normalmente
+          element.style.margin = '0 auto';
+          element.style.display = 'block';
+        } else if (this.config.applyNegativeMargin) {
+          // Se o anúncio for maior que o contêiner e applyNegativeMargin estiver ativado
+          // Calcula a margem negativa necessária para centralizar
+          const marginLeft = (parentWidth - width) / 2;
+          
+          // Verifica se há configuração específica de margem para esta posição
+          const marginConfig = this.config.marginConfig[position];
+          
+          if (marginConfig) {
+            // Aplica configuração específica de margem
+            if (marginConfig.left !== undefined) {
+              element.style.marginLeft = `${marginConfig.left}px`;
+            } else {
+              element.style.marginLeft = `${marginLeft}px`;
+            }
+            
+            if (marginConfig.right !== undefined) {
+              element.style.marginRight = `${marginConfig.right}px`;
+            }
+          } else {
+            // Aplica margem calculada automaticamente
+            element.style.marginLeft = `${marginLeft}px`;
           }
           
-          // Procura por divs do Google dentro do elemento
-          const googleDivs = element.querySelectorAll('div[id^="google_ads_iframe_"]');
-          if (googleDivs.length > 0) {
-            googleDivs.forEach(div => {
-              div.style.margin = '0 auto';
-              div.style.display = 'block';
-            });
-          }
-        }, 100);
+          element.style.display = 'block';
+        }
       }
+      
+      // Procura por iframes dentro do elemento (comum em anúncios)
+      setTimeout(() => {
+        const iframes = element.querySelectorAll('iframe');
+        if (iframes.length > 0) {
+          iframes.forEach(iframe => {
+            // Ajusta o iframe para o tamanho real
+            iframe.style.width = `${width}px`;
+            iframe.style.height = `${height}px`;
+          });
+        }
+        
+        // Procura por divs do Google dentro do elemento
+        const googleDivs = element.querySelectorAll('div[id^="google_ads_iframe_"]');
+        if (googleDivs.length > 0) {
+          googleDivs.forEach(div => {
+            div.style.width = `${width}px`;
+            div.style.height = `${height}px`;
+          });
+        }
+      }, 100);
     }
 
     /**
@@ -282,7 +324,8 @@
         const slotConfig = {
           id,
           sizes: currentSizes,
-          sizeMapping
+          sizeMapping,
+          position
         };
         
         this.slots.set(id, slotConfig);
@@ -443,33 +486,51 @@
     }
 
     /**
-     * Centraliza manualmente um anúncio
-     * @param {string} slotId - ID do slot
+     * Configura a margem negativa para uma posição específica
+     * @param {string} position - Nome da posição
+     * @param {Object} marginConfig - Configuração de margem (left, right)
      */
-    centerAdManually(slotId) {
-      const element = document.getElementById(slotId);
-      if (!element) return;
-      
-      // Procura por iframes dentro do elemento
-      const iframes = element.querySelectorAll('iframe');
-      if (iframes.length > 0) {
-        const iframe = iframes[0];
-        const width = parseInt(iframe.width, 10) || iframe.offsetWidth;
-        const height = parseInt(iframe.height, 10) || iframe.offsetHeight;
-        
-        if (width && height) {
-          this.centerAd(element, width, height);
-        }
+    setPositionMargin(position, marginConfig) {
+      if (!this.config.marginConfig) {
+        this.config.marginConfig = {};
       }
+      
+      this.config.marginConfig[position] = marginConfig;
+      
+      // Reaplicar margens para slots já renderizados com esta posição
+      this.slots.forEach((config, id) => {
+        if (config.position === position && this.slotSizes.has(id)) {
+          const element = document.getElementById(id);
+          if (element) {
+            const size = this.slotSizes.get(id);
+            this.applyRealSize(element, size.width, size.height, position);
+          }
+        }
+      });
     }
 
     /**
-     * Centraliza todos os anúncios manualmente
+     * Obtém o tamanho real de um slot renderizado
+     * @param {string} slotId - ID do slot
+     * @returns {Object|null} Tamanho do slot ou null se não encontrado
      */
-    centerAllAdsManually() {
-      this.slots.forEach((config, id) => {
-        this.centerAdManually(id);
-      });
+    getSlotSize(slotId) {
+      return this.slotSizes.get(slotId) || null;
+    }
+
+    /**
+     * Aplica manualmente o tamanho real a um slot
+     * @param {string} slotId - ID do slot
+     * @param {number} width - Largura do slot
+     * @param {number} height - Altura do slot
+     */
+    applySlotSize(slotId, width, height) {
+      const element = document.getElementById(slotId);
+      if (!element) return;
+      
+      const position = element.dataset.pos || 'default';
+      this.slotSizes.set(slotId, { width, height });
+      this.applyRealSize(element, width, height, position);
     }
   }
 
@@ -524,13 +585,26 @@
           subtree: true
         });
 
-        // Se a centralização estiver ativada, configura um timeout para centralizar manualmente
-        // os anúncios que podem ter sido renderizados antes da configuração do listener
-        if (adManager.config.centering) {
-          setTimeout(() => {
-            adManager.centerAllAdsManually();
-          }, 1000);
-        }
+        // Configura um timeout para aplicar tamanhos reais aos anúncios
+        // que podem ter sido renderizados antes da configuração do listener
+        setTimeout(() => {
+          adManager.slots.forEach((config, id) => {
+            const element = document.getElementById(id);
+            if (element) {
+              // Procura por iframes dentro do elemento
+              const iframes = element.querySelectorAll('iframe');
+              if (iframes.length > 0) {
+                const iframe = iframes[0];
+                const width = parseInt(iframe.width, 10) || iframe.offsetWidth;
+                const height = parseInt(iframe.height, 10) || iframe.offsetHeight;
+                
+                if (width && height) {
+                  adManager.applySlotSize(id, width, height);
+                }
+              }
+            }
+          });
+        }, 1000);
       });
     },
     
@@ -569,18 +643,31 @@
     },
 
     /**
-     * Centraliza manualmente um anúncio
-     * @param {string} slotId - ID do slot
+     * Configura a margem negativa para uma posição específica
+     * @param {string} position - Nome da posição
+     * @param {Object} marginConfig - Configuração de margem (left, right)
      */
-    centerAd: function(slotId) {
-      adManager.centerAdManually(slotId);
+    setPositionMargin: function(position, marginConfig) {
+      adManager.setPositionMargin(position, marginConfig);
     },
 
     /**
-     * Centraliza todos os anúncios manualmente
+     * Obtém o tamanho real de um slot renderizado
+     * @param {string} slotId - ID do slot
+     * @returns {Object|null} Tamanho do slot ou null se não encontrado
      */
-    centerAllAds: function() {
-      adManager.centerAllAdsManually();
+    getSlotSize: function(slotId) {
+      return adManager.getSlotSize(slotId);
+    },
+
+    /**
+     * Aplica manualmente o tamanho real a um slot
+     * @param {string} slotId - ID do slot
+     * @param {number} width - Largura do slot
+     * @param {number} height - Altura do slot
+     */
+    applySlotSize: function(slotId, width, height) {
+      adManager.applySlotSize(slotId, width, height);
     }
   };
 
