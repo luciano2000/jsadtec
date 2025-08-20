@@ -66,11 +66,16 @@
    * @type {Object<string, AdSizeMapping[]>}
    */
   const adSizesByPosition = {
+    'big': [
+      { viewport: [0, 0], sizes: [{ width: 320, height: 50 }, { width: 320, height: 100 }] },
+      { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] },
+      { viewport: [1050, 0], sizes: [{ width: 970, height: 90 }, { width: 970, height: 250 },{ width: 1300, height: 250 }] }
+    ],
     'topo': [
       { viewport: [0, 0], sizes: [{ width: 320, height: 50 }, { width: 320, height: 100 }] },
       { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] },
       { viewport: [1050, 0], sizes: [{ width: 970, height: 90 }, { width: 970, height: 250 }] }
-    ],
+    ],    
     'lateral': [
       { viewport: [0, 0], sizes: [] }, // Sem anúncios em mobile
       { viewport: [1000, 0], sizes: [{ width: 300, height: 250 }] }
