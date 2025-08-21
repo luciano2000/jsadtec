@@ -1,5 +1,5 @@
 // Google AdManager - Script Simplificado
-// Versão 1.2.0 - Com suporte a banners maiores que o container e margem negativa
+// Versão 2.0.0 - Com refresh automático, targets dinâmicos e PPID
 
 /**
  * Configuração do AdManager
@@ -12,6 +12,15 @@
  * @property {boolean} [centering=false] - Centralizar anúncios automaticamente
  * @property {boolean} [applyNegativeMargin=false] - Aplicar margem negativa para banners maiores que o container
  * @property {Object} [marginConfig] - Configuração de margens negativas por posição
+ * @property {number} [refresh=0] - Tempo em segundos para refresh automático (0 = desabilitado)
+ * @property {string|Array} [pageAttributes] - Atributos da página para targeting
+ * @property {string|Array} [pagePostAuthor] - Autor do post para targeting
+ * @property {string|Array} [pagePostTermsCat] - Categorias do post para targeting
+ * @property {string|Array} [pagePostTermsTag] - Tags do post para targeting
+ * @property {string|Array} [pagePostType] - Tipo de post para targeting
+ * @property {string|Array} [pagePostType2] - Tipo de post secundário para targeting
+ * @property {string|number} [postID] - ID do post para targeting
+ * @property {string} [visitorEmailHash] - Hash do email do visitante para PPID
  */
 
 /**
@@ -55,17 +64,23 @@
     disableInitialLoad: false,
     centering: false,
     applyNegativeMargin: false,
-    marginConfig: {
-      // Configuração de margem negativa por posição (em pixels)
-      // Exemplo: 'topo': { left: -20, right: -20 }
-    }
+    marginConfig: {},
+    refresh: 0, // 0 = desabilitado
+    pageAttributes: null,
+    pagePostAuthor: null,
+    pagePostTermsCat: null,
+    pagePostTermsTag: null,
+    pagePostType: null,
+    pagePostType2: null,
+    postID: null,
+    visitorEmailHash: null
   };
-  
+
   /**
    * Mapeamento de posições para tamanhos de anúncios
    * @type {Object<string, AdSizeMapping[]>}
    */
-  const adSizesByPosition = {
+    const adSizesByPosition = {
     'big': [
       { viewport: [0, 0], sizes: [{ width: 320, height: 50 }, { width: 320, height: 100 }] },
       { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] },
@@ -109,7 +124,6 @@
     ]
   };
 
- 
   /**
    * Classe principal do AdManager
    */
@@ -124,8 +138,10 @@
       this.initialized = false;
       this.googletag = null;
       this.resizeTimeout = null;
+      this.refreshTimeout = null;
       this.slotRenderEndedListeners = new Map();
       this.slotSizes = new Map(); // Armazena os tamanhos reais dos slots renderizados
+      this.lastRefreshTime = 0; // Armazena o timestamp do último refresh
     }
 
     /**
@@ -166,7 +182,15 @@
               this.googletag.pubads().disableInitialLoad();
             }
             
-            // Configura o evento slotRenderEnded para aplicar tamanho real e centralização
+            // Configura o PPID se visitorEmailHash estiver definido
+            if (this.config.visitorEmailHash) {
+              this.googletag.pubads().setPublisherProvidedId(this.config.visitorEmailHash);
+            }
+            
+            // Configura os targets globais
+            this.setupGlobalTargeting();
+            
+            // Configura o evento slotRenderEnded para centralização
             this.googletag.pubads().addEventListener('slotRenderEnded', (event) => {
               this.handleSlotRenderEnded(event);
             });
@@ -180,6 +204,27 @@
         };
         
         document.head.appendChild(script);
+      });
+    }
+
+    /**
+     * Configura os targets globais
+     */
+    setupGlobalTargeting() {
+      const targetingParams = [
+        { key: 'pageAttributes', value: this.config.pageAttributes },
+        { key: 'pagePostAuthor', value: this.config.pagePostAuthor },
+        { key: 'pagePostTermsCat', value: this.config.pagePostTermsCat },
+        { key: 'pagePostTermsTag', value: this.config.pagePostTermsTag },
+        { key: 'pagePostType', value: this.config.pagePostType },
+        { key: 'pagePostType2', value: this.config.pagePostType2 },
+        { key: 'postID', value: this.config.postID }
+      ];
+      
+      targetingParams.forEach(param => {
+        if (param.value !== null && param.value !== undefined) {
+          this.googletag.pubads().setTargeting(param.key, param.value);
+        }
       });
     }
 
@@ -343,6 +388,9 @@
         // Define o slot no GPT
         this.defineSlot(slotConfig);
       });
+
+      // Configura o refresh automático se habilitado
+      this.setupRefresh();
     }
 
     /**
@@ -399,6 +447,44 @@
     }
 
     /**
+     * Configura o refresh automático dos anúncios
+     */
+    setupRefresh() {
+      // Limpa qualquer timeout existente
+      if (this.refreshTimeout) {
+        clearTimeout(this.refreshTimeout);
+        this.refreshTimeout = null;
+      }
+      
+      // Verifica se o refresh está habilitado
+      if (this.config.refresh && this.config.refresh > 0) {
+        const refreshInterval = this.config.refresh * 1000; // Converte para milissegundos
+        
+        // Configura o refresh automático
+        this.refreshTimeout = setTimeout(() => {
+          this.refreshAds();
+          // Configura o próximo refresh
+          this.setupRefresh();
+        }, refreshInterval);
+        
+        // Alternativa: usar visibilidade da página para gerenciar refresh
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            // Verifica se passou tempo suficiente desde o último refresh
+            const now = Date.now();
+            const timeSinceLastRefresh = now - this.lastRefreshTime;
+            
+            if (timeSinceLastRefresh >= refreshInterval) {
+              this.refreshAds();
+              // Reconfigura o timeout
+              this.setupRefresh();
+            }
+          }
+        });
+      }
+    }
+
+    /**
      * Obtém os tamanhos para a viewport atual
      * @param {AdSizeMapping[]} sizeMapping - Mapeamento de tamanhos
      * @returns {AdSize[]} Tamanhos para a viewport atual
@@ -424,7 +510,7 @@
     }
 
     /**
-     * Atualiza os anúncios quando a viewport muda
+     * Atualiza os anúncios quando a viewport muda ou manualmente
      */
     refreshAds() {
       if (!this.initialized) return;
@@ -443,6 +529,11 @@
         
         // Atualiza todos os anúncios
         this.googletag.pubads().refresh();
+        
+        // Registra o timestamp do refresh
+        this.lastRefreshTime = Date.now();
+        
+        console.log(`Anúncios atualizados em ${new Date().toLocaleTimeString()}`);
       });
     }
 
@@ -541,6 +632,27 @@
       const position = element.dataset.pos || 'default';
       this.slotSizes.set(slotId, { width, height });
       this.applyRealSize(element, width, height, position);
+    }
+
+    /**
+     * Atualiza a configuração do AdManager
+     * @param {Partial<AdManagerConfig>} config - Nova configuração
+     */
+    updateConfig(config) {
+      // Atualiza a configuração
+      Object.assign(this.config, config);
+      
+      // Atualiza o PPID se visitorEmailHash foi alterado
+      if (config.visitorEmailHash !== undefined && this.initialized) {
+        this.googletag.cmd.push(() => {
+          this.googletag.pubads().setPublisherProvidedId(this.config.visitorEmailHash);
+        });
+      }
+      
+      // Reconfigura o refresh automático se o valor foi alterado
+      if (config.refresh !== undefined) {
+        this.setupRefresh();
+      }
     }
   }
 
@@ -678,6 +790,14 @@
      */
     applySlotSize: function(slotId, width, height) {
       adManager.applySlotSize(slotId, width, height);
+    },
+
+    /**
+     * Atualiza a configuração do AdManager
+     * @param {Partial<AdManagerConfig>} config - Nova configuração
+     */
+    updateConfig: function(config) {
+      adManager.updateConfig(config);
     }
   };
 
