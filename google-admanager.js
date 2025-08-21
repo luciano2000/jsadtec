@@ -303,10 +303,14 @@
           if (marginConfig) {
             // Aplica configuração específica de margem
             if (marginConfig.left !== undefined) {
-              element.style.marginLeft = `${marginConfig.left}px`;
-            } else {
-              element.style.marginLeft = `${marginLeft}px`;
-            }
+  element.style.marginLeft = `${marginConfig.left}px`;
+} else {
+  element.style.marginLeft = `${marginLeft}px`;
+}
+
+if (marginConfig.right !== undefined) {
+  element.style.marginRight = `${marginConfig.right}px`;
+}
             
             if (marginConfig.right !== undefined) {
               element.style.marginRight = `${marginConfig.right}px`;
