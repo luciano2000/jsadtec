@@ -301,13 +301,15 @@
           const marginConfig = this.config.marginConfig[position];
           
           if (marginConfig) {
-            // Aplica configuração específica de margem
-            if (marginConfig.left !== undefined) {
+// Remove margin auto antes
+element.style.margin = '0px';
+
+// Aplica margem esquerda
+if (marginConfig.left !== undefined) {
   element.style.marginLeft = `${marginConfig.left}px`;
-} else {
-  element.style.marginLeft = `${marginLeft}px`;
 }
 
+// Aplica margem direita (opcional)
 if (marginConfig.right !== undefined) {
   element.style.marginRight = `${marginConfig.right}px`;
 }
