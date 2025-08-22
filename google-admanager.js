@@ -258,6 +258,12 @@
         
         // Aplica o tamanho real ao elemento
         this.applyRealSize(element, width, height, position);
+        if (position === "inread-full") {
+  var wrapper = element.closest(".ad-wrapper-inread-full");
+  if (wrapper) {
+    wrapper.style.setProperty("--inread-full-width", width + "px");
+  }
+}
       }
       
       // Executa listeners personalizados
