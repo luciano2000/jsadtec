@@ -259,20 +259,6 @@
         // Aplica o tamanho real ao elemento
         this.applyRealSize(element, width, height, position);
         
-        // Se for inread-full, injeta variáveis CSS no wrapper pai
-        if (position === "inread-full") {
-          var wrapper = element.closest(".ad-wrapper-inread-full");
-          if (wrapper) {
-            // largura real do banner
-            wrapper.style.setProperty("--inread-full-width", width + "px");
-
-            // calcula offset negativo
-            var containerWidth = wrapper.parentElement ? wrapper.parentElement.offsetWidth : window.innerWidth;
-            var offset = (containerWidth - width) / 2;
-            wrapper.style.setProperty("--inread-full-offset", offset + "px");
-          }
-        }
-
       }
       
       // Executa listeners personalizados
