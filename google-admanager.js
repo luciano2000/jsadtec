@@ -1,5 +1,5 @@
 // Google AdManager - Script Simplificado
-// Versão 2.0.0 - Com refresh automático, targets dinâmicos e PPID
+// Versão 2.1.0 - Com refresh automático, targets dinâmicos, PPID e enumeração de posições
 
 /**
  * Configuração do AdManager
@@ -44,6 +44,8 @@
  * @property {AdSize[]} sizes - Tamanhos do anúncio
  * @property {AdSizeMapping[]} [sizeMapping] - Mapeamento de tamanhos responsivos
  * @property {Object<string, string|string[]>} [targeting] - Targeting do anúncio
+ * @property {string} position - Posição base do anúncio
+ * @property {string} positionWithIndex - Posição com índice sequencial (ex: meio_1, meio_2)
  */
 
 (function(window, document) {
@@ -80,7 +82,7 @@
    * Mapeamento de posições para tamanhos de anúncios
    * @type {Object<string, AdSizeMapping[]>}
    */
-    const adSizesByPosition = {
+  const adSizesByPosition = {
     'big': [
       { viewport: [0, 0], sizes: [{ width: 320, height: 50 }, { width: 320, height: 100 }] },
       { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] },
@@ -142,6 +144,7 @@
       this.slotRenderEndedListeners = new Map();
       this.slotSizes = new Map(); // Armazena os tamanhos reais dos slots renderizados
       this.lastRefreshTime = 0; // Armazena o timestamp do último refresh
+      this.positionCounters = {}; // Contador para cada posição
     }
 
     /**
@@ -302,19 +305,15 @@
           const marginConfig = this.config.marginConfig[position];
           
           if (marginConfig) {
-// Remove margin auto antes
-element.style.margin = '0px';
+            // Remove margin auto antes
+            element.style.margin = '0px';
 
-// Aplica margem esquerda
-if (marginConfig.left !== undefined) {
-  element.style.marginLeft = `${marginConfig.left}px`;
-}
+            // Aplica margem esquerda
+            if (marginConfig.left !== undefined) {
+              element.style.marginLeft = `${marginConfig.left}px`;
+            }
 
-// Aplica margem direita (opcional)
-if (marginConfig.right !== undefined) {
-  element.style.marginRight = `${marginConfig.right}px`;
-}
-            
+            // Aplica margem direita (opcional)
             if (marginConfig.right !== undefined) {
               element.style.marginRight = `${marginConfig.right}px`;
             }
@@ -360,9 +359,24 @@ if (marginConfig.right !== undefined) {
 
       // Limpa slots existentes
       this.slots.clear();
+      
+      // Reinicia os contadores de posição
+      this.positionCounters = {};
 
       // Encontra todas as divs com classe 'pubad'
       const adDivs = document.querySelectorAll('.pubad');
+      
+      // Primeiro passo: contar quantas divs existem para cada posição
+      adDivs.forEach((div) => {
+        const position = div.dataset.pos || 'default';
+        if (!this.positionCounters[position]) {
+          this.positionCounters[position] = 0;
+        }
+        this.positionCounters[position]++;
+      });
+      
+      // Segundo passo: processar cada div e atribuir índice sequencial
+      const processedPositions = {};
       
       adDivs.forEach((div, index) => {
         const element = div;
@@ -376,6 +390,20 @@ if (marginConfig.right !== undefined) {
         // Obtém a posição do atributo data-pos ou usa 'default'
         const position = element.dataset.pos || 'default';
         
+        // Inicializa o contador para esta posição se necessário
+        if (!processedPositions[position]) {
+          processedPositions[position] = 0;
+        }
+        
+        // Incrementa o contador para esta posição
+        processedPositions[position]++;
+        
+        // Cria a posição com índice sequencial (ex: meio_1, meio_2)
+        const positionWithIndex = `${position}_${processedPositions[position]}`;
+        
+        // Atualiza o atributo data-pos com o valor enumerado
+        element.dataset.posIndex = positionWithIndex;
+        
         // Obtém o mapeamento de tamanhos para esta posição
         const sizeMapping = adSizesByPosition[position] || adSizesByPosition.default;
         
@@ -387,7 +415,8 @@ if (marginConfig.right !== undefined) {
           id,
           sizes: currentSizes,
           sizeMapping,
-          position
+          position,
+          positionWithIndex
         };
         
         this.slots.set(id, slotConfig);
@@ -398,6 +427,10 @@ if (marginConfig.right !== undefined) {
 
       // Configura o refresh automático se habilitado
       this.setupRefresh();
+      
+      // Log para debug
+      console.log('Posições detectadas:', this.positionCounters);
+      console.log('Slots configurados:', this.slots);
     }
 
     /**
@@ -437,6 +470,12 @@ if (marginConfig.right !== undefined) {
           
           slot.defineSizeMapping(sizeMapping.build());
         }
+        
+        // Adiciona targeting para a posição base
+        slot.setTargeting('pos', config.position);
+        
+        // Adiciona targeting para a posição com índice sequencial
+        slot.setTargeting('position', config.positionWithIndex);
         
         // Adiciona targeting se disponível
         if (config.targeting) {
@@ -661,6 +700,21 @@ if (marginConfig.right !== undefined) {
         this.setupRefresh();
       }
     }
+    
+    /**
+     * Obtém informações sobre as posições enumeradas
+     * @returns {Object} Objeto com contadores de posição
+     */
+    getPositionInfo() {
+      return {
+        counters: { ...this.positionCounters },
+        slots: Array.from(this.slots.values()).map(slot => ({
+          id: slot.id,
+          position: slot.position,
+          positionWithIndex: slot.positionWithIndex
+        }))
+      };
+    }
   }
 
   // Cria uma instância global do AdManager
@@ -805,6 +859,14 @@ if (marginConfig.right !== undefined) {
      */
     updateConfig: function(config) {
       adManager.updateConfig(config);
+    },
+    
+    /**
+     * Obtém informações sobre as posições enumeradas
+     * @returns {Object} Objeto com contadores de posição
+     */
+    getPositionInfo: function() {
+      return adManager.getPositionInfo();
     }
   };
 
