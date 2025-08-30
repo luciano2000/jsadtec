@@ -702,3 +702,252 @@ Esta funcionalidade é totalmente compatível com todas as outras característic
 - Centralização e margens negativas
 
 Não é necessária nenhuma configuração adicional para ativar esta funcionalidade - ela funciona automaticamente para todas as divs com classe `pubad`.
+
+---
+# Documentação: Google AdManager com LazyLoad, Refresh em Banners Visíveis e Requisições Individuais
+
+## Visão Geral
+
+Esta atualização do script Google AdManager (versão 3.0.0) implementa três melhorias importantes solicitadas:
+
+1. **LazyLoad para anúncios** - Carregamento dos anúncios apenas quando estiverem próximos da área visível
+2. **Desativação do Single Request** - Mudança para requisições individuais de anúncios
+3. **Refresh apenas em banners visíveis** - Implementação da verificação de visibilidade antes do refresh
+
+Estas melhorias trazem benefícios significativos de performance e experiência do usuário para seu site.
+
+## Novas Configurações
+
+```javascript
+GoogleAdManager.init({
+    networkCode: '23050256432',
+    adUnitPath: '/brasilbuzz',
+    
+    // Configurações de LazyLoad
+    enableLazyLoad: true,                // Ativa o LazyLoad (padrão: true)
+    fetchMarginPercent: 100,             // Distância para buscar anúncios (100% = 1 viewport)
+    renderMarginPercent: 50,             // Distância para renderizar (50% = metade da viewport)
+    mobileScaling: 2.0,                  // Escala para dispositivos móveis
+    
+    // Configuração de Single Request
+    enableSingleRequest: false,          // Desativa requisições únicas (padrão: false)
+    
+    // Configuração de Refresh
+    refresh: 30,                         // Tempo em segundos para refresh (0 = desabilitado)
+    refreshOnlyVisible: true,            // Atualiza apenas anúncios visíveis (padrão: true)
+    
+    // Outras configurações existentes
+    collapseEmptyDivs: true,
+    centering: true,
+    // ...
+});
+```
+
+## 1. LazyLoad para Anúncios
+
+### Como Funciona
+
+O LazyLoad carrega os anúncios apenas quando eles estão próximos de entrar na área visível da tela, em vez de carregar todos os anúncios de uma vez durante o carregamento inicial da página.
+
+O script implementa o LazyLoad de duas maneiras:
+
+1. **LazyLoad Nativo do GPT**: Utiliza a funcionalidade nativa do Google Publisher Tag
+2. **LazyLoad com Intersection Observer**: Implementação personalizada usando Intersection Observer para maior controle
+
+### Benefícios
+
+- **Melhora o tempo de carregamento da página**: Reduz a quantidade de recursos carregados inicialmente
+- **Economiza largura de banda**: Carrega apenas os anúncios que o usuário provavelmente verá
+- **Melhora a viewability**: Anúncios são carregados quando o usuário está prestes a vê-los
+- **Reduz o consumo de CPU e memória**: Menos anúncios carregados simultaneamente
+
+### Configuração Avançada
+
+```javascript
+GoogleAdManager.init({
+    // ...
+    enableLazyLoad: true,
+    fetchMarginPercent: 200,    // Carrega anúncios quando estiverem a 2 viewports de distância
+    renderMarginPercent: 100,   // Renderiza quando estiver a 1 viewport de distância
+    mobileScaling: 1.5          // Escala menor para dispositivos móveis
+});
+```
+
+## 2. Desativação do Single Request Architecture (SRA)
+
+### Como Funciona
+
+Por padrão, o script agora desativa a Single Request Architecture (SRA), fazendo com que cada anúncio seja solicitado individualmente em vez de agrupar todos em uma única requisição.
+
+### Benefícios
+
+- **Carregamento mais granular**: Cada anúncio é carregado independentemente
+- **Melhor controle sobre prioridades**: Anúncios importantes podem ser carregados primeiro
+- **Compatibilidade com LazyLoad**: Funciona melhor com o carregamento preguiçoso de anúncios
+
+### Quando Usar SRA
+
+Em alguns casos específicos, você pode querer reativar o SRA:
+
+```javascript
+GoogleAdManager.init({
+    // ...
+    enableSingleRequest: true,  // Reativa o SRA se necessário
+});
+```
+
+Recomendado apenas quando:
+- Você precisa garantir exclusões competitivas entre anúncios
+- Você está usando roadblocks configurados no Ad Manager
+- Você tem poucos anúncios na página (todos acima da dobra)
+
+## 3. Refresh Apenas em Banners Visíveis
+
+### Como Funciona
+
+O script agora verifica a visibilidade dos anúncios antes de atualizá-los, garantindo que apenas os anúncios visíveis na tela sejam atualizados durante um refresh.
+
+### Benefícios
+
+- **Economia de recursos**: Não atualiza anúncios que o usuário não está vendo
+- **Melhores métricas de viewability**: Anúncios são atualizados quando estão visíveis
+- **Melhor experiência do usuário**: Reduz o consumo de dados e processamento
+
+### Configuração
+
+```javascript
+GoogleAdManager.init({
+    // ...
+    refresh: 30,                // Atualiza a cada 30 segundos
+    refreshOnlyVisible: true,   // Apenas anúncios visíveis
+});
+```
+
+### Refresh Manual
+
+Você também pode atualizar manualmente os anúncios:
+
+```javascript
+// Atualiza apenas anúncios visíveis
+GoogleAdManager.refresh();
+
+// Atualiza todos os anúncios, mesmo os não visíveis
+GoogleAdManager.refresh(false);
+
+// Atualiza um anúncio específico
+GoogleAdManager.loadAd('ad-slot-0');
+```
+
+## Verificação de Visibilidade
+
+O script inclui métodos para verificar a visibilidade dos anúncios:
+
+```javascript
+// Verifica se um slot específico está visível
+const isVisible = GoogleAdManager.isSlotVisible('ad-slot-0');
+console.log('O anúncio está visível?', isVisible);
+
+// Obtém informações sobre todos os slots
+const info = GoogleAdManager.getPositionInfo();
+console.log('Slots visíveis:', info.slots.filter(slot => slot.isVisible));
+```
+
+## Compatibilidade com Navegadores
+
+- **Navegadores modernos**: Todas as funcionalidades são suportadas (Chrome, Firefox, Safari, Edge)
+- **Navegadores antigos**: Fallback automático para carregamento padrão se Intersection Observer não for suportado
+
+## Exemplos de Uso
+
+### Configuração Básica
+
+```html
+<script src="https://t.ad.tec.br/google-admanager.js"></script>
+<script>
+    GoogleAdManager.init({
+        networkCode: '23050256432',
+        adUnitPath: '/brasilbuzz',
+        collapseEmptyDivs: true,
+        centering: true,
+        enableLazyLoad: true,
+        enableSingleRequest: false,
+        refresh: 30,
+        refreshOnlyVisible: true
+    });
+</script>
+
+<!-- Anúncios serão carregados apenas quando próximos da área visível -->
+<div class="pubad" data-pos="topo"></div>
+<div class="pubad" data-pos="meio"></div>
+<div class="pubad" data-pos="rodape"></div>
+```
+
+### Configuração Avançada
+
+```html
+<script src="https://t.ad.tec.br/google-admanager.js"></script>
+<script>
+    GoogleAdManager.init({
+        networkCode: '23050256432',
+        adUnitPath: '/brasilbuzz',
+        collapseEmptyDivs: true,
+        centering: true,
+        
+        // LazyLoad personalizado
+        enableLazyLoad: true,
+        fetchMarginPercent: 150,
+        renderMarginPercent: 75,
+        mobileScaling: 1.8,
+        
+        // Desativa SRA
+        enableSingleRequest: false,
+        
+        // Refresh personalizado
+        refresh: 45,
+        refreshOnlyVisible: true,
+        
+        // Targeting
+        pageAttributes: 'valor1,valor2',
+        pagePostAuthor: 'nome_autor',
+        pagePostTermsCat: ['categoria1', 'categoria2'],
+        pagePostTermsTag: ['tag1', 'tag2'],
+        pagePostType: 'artigo',
+        pagePostType2: 'premium',
+        postID: 12345,
+        visitorEmailHash: 'hash_do_email'
+    });
+    
+    // Monitora eventos de visibilidade
+    GoogleAdManager.addSlotRenderEndedListener('ad-slot-0', function(event) {
+        console.log('Anúncio renderizado:', event);
+    });
+</script>
+```
+
+## Depuração
+
+Para depurar o funcionamento do LazyLoad e do refresh por visibilidade:
+
+```javascript
+// Verifica quais slots estão configurados e seu estado
+console.log(GoogleAdManager.getPositionInfo());
+
+// Força o carregamento de um anúncio específico
+GoogleAdManager.loadAd('ad-slot-0');
+
+// Força um refresh em todos os anúncios
+GoogleAdManager.refresh(false);
+```
+
+## Considerações de Performance
+
+- **LazyLoad**: Melhora significativamente o tempo de carregamento inicial da página
+- **Requisições individuais**: Pode aumentar ligeiramente o número de requisições HTTP, mas melhora a granularidade
+- **Refresh por visibilidade**: Reduz o consumo de recursos e melhora as métricas de viewability
+
+## Recomendações
+
+1. **Mantenha o LazyLoad ativado** para melhor performance, especialmente em páginas com muitos anúncios
+2. **Ajuste fetchMarginPercent e renderMarginPercent** conforme necessário para sua página
+3. **Mantenha o Single Request desativado** a menos que você precise especificamente de exclusões competitivas
+4. **Use refresh apenas em banners visíveis** para melhorar a experiência do usuário e as métricas de viewability
