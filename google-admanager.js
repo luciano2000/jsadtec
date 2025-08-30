@@ -1,5 +1,5 @@
 // Google AdManager - Script Simplificado
-// Versão 2.1.0 - Com refresh automático, targets dinâmicos, PPID e enumeração de posições
+// Versão 3.0.0 - Com LazyLoad, Refresh em banners visíveis e Single Request desativado
 
 /**
  * Configuração do AdManager
@@ -7,12 +7,16 @@
  * @property {string} networkCode - Código da rede do Google AdManager
  * @property {string} adUnitPath - Caminho da unidade de anúncio
  * @property {boolean} [collapseEmptyDivs=true] - Colapsar divs vazias
- * @property {boolean} [enableSingleRequest=true] - Habilitar requisição única
- * @property {boolean} [disableInitialLoad=false] - Desabilitar carregamento inicial
+ * @property {boolean} [enableSingleRequest=false] - Habilitar requisição única (desativado por padrão)
+ * @property {boolean} [enableLazyLoad=true] - Habilitar carregamento preguiçoso de anúncios
+ * @property {number} [fetchMarginPercent=100] - Porcentagem de margem para buscar anúncios (LazyLoad)
+ * @property {number} [renderMarginPercent=50] - Porcentagem de margem para renderizar anúncios (LazyLoad)
+ * @property {number} [mobileScaling=2.0] - Escala para dispositivos móveis (LazyLoad)
  * @property {boolean} [centering=false] - Centralizar anúncios automaticamente
  * @property {boolean} [applyNegativeMargin=false] - Aplicar margem negativa para banners maiores que o container
  * @property {Object} [marginConfig] - Configuração de margens negativas por posição
  * @property {number} [refresh=0] - Tempo em segundos para refresh automático (0 = desabilitado)
+ * @property {boolean} [refreshOnlyVisible=true] - Atualizar apenas anúncios visíveis
  * @property {string|Array} [pageAttributes] - Atributos da página para targeting
  * @property {string|Array} [pagePostAuthor] - Autor do post para targeting
  * @property {string|Array} [pagePostTermsCat] - Categorias do post para targeting
@@ -46,6 +50,8 @@
  * @property {Object<string, string|string[]>} [targeting] - Targeting do anúncio
  * @property {string} position - Posição base do anúncio
  * @property {string} positionWithIndex - Posição com índice sequencial (ex: meio_1, meio_2)
+ * @property {boolean} isLoaded - Indica se o anúncio já foi carregado
+ * @property {boolean} isVisible - Indica se o anúncio está visível
  */
 
 (function(window, document) {
@@ -62,12 +68,17 @@
     networkCode: '1234567',
     adUnitPath: '/rede/site',
     collapseEmptyDivs: true,
-    enableSingleRequest: true,
-    disableInitialLoad: false,
+    enableSingleRequest: false, // Single Request desativado por padrão
+    enableLazyLoad: true, // LazyLoad ativado por padrão
+    fetchMarginPercent: 100, // 100% = 1 viewport de distância
+    renderMarginPercent: 50, // 50% = metade de um viewport de distância
+    mobileScaling: 2.0, // Escala para dispositivos móveis
+    disableInitialLoad: true, // Desabilita carregamento inicial para permitir LazyLoad
     centering: false,
     applyNegativeMargin: false,
     marginConfig: {},
     refresh: 0, // 0 = desabilitado
+    refreshOnlyVisible: true, // Atualizar apenas anúncios visíveis
     pageAttributes: null,
     pagePostAuthor: null,
     pagePostTermsCat: null,
@@ -145,6 +156,8 @@
       this.slotSizes = new Map(); // Armazena os tamanhos reais dos slots renderizados
       this.lastRefreshTime = 0; // Armazena o timestamp do último refresh
       this.positionCounters = {}; // Contador para cada posição
+      this.visibilityObservers = new Map(); // Armazena os observers de visibilidade para cada slot
+      this.isIntersectionObserverSupported = typeof IntersectionObserver !== 'undefined';
     }
 
     /**
@@ -180,9 +193,18 @@
               this.googletag.pubads().collapseEmptyDivs();
             }
             
-            // Desabilita o carregamento inicial se configurado
-            if (this.config.disableInitialLoad) {
+            // Desabilita o carregamento inicial para permitir LazyLoad
+            if (this.config.disableInitialLoad || this.config.enableLazyLoad) {
               this.googletag.pubads().disableInitialLoad();
+            }
+            
+            // Configura o LazyLoad se habilitado
+            if (this.config.enableLazyLoad) {
+              this.googletag.pubads().enableLazyLoad({
+                fetchMarginPercent: this.config.fetchMarginPercent,
+                renderMarginPercent: this.config.renderMarginPercent,
+                mobileScaling: this.config.mobileScaling
+              });
             }
             
             // Configura o PPID se visitorEmailHash estiver definido
@@ -196,6 +218,17 @@
             // Configura o evento slotRenderEnded para centralização
             this.googletag.pubads().addEventListener('slotRenderEnded', (event) => {
               this.handleSlotRenderEnded(event);
+            });
+            
+            // Configura o evento impressionViewable para rastrear visibilidade
+            this.googletag.pubads().addEventListener('impressionViewable', (event) => {
+              const slotId = event.slot.getSlotElementId();
+              const slotConfig = this.slots.get(slotId);
+              
+              if (slotConfig) {
+                slotConfig.isVisible = true;
+                console.log(`Slot ${slotId} está visível`);
+              }
             });
             
             // Ativa os serviços
@@ -243,6 +276,12 @@
       const element = document.getElementById(slotId);
       if (!element) return;
       
+      // Marca o slot como carregado
+      const slotConfig = this.slots.get(slotId);
+      if (slotConfig) {
+        slotConfig.isLoaded = true;
+      }
+      
       // Verifica se o anúncio está vazio
       if (event.isEmpty) return;
       
@@ -261,7 +300,6 @@
         
         // Aplica o tamanho real ao elemento
         this.applyRealSize(element, width, height, position);
-        
       }
       
       // Executa listeners personalizados
@@ -357,8 +395,12 @@
         return;
       }
 
-      // Limpa slots existentes
+      // Limpa slots existentes e observers
       this.slots.clear();
+      this.visibilityObservers.forEach(observer => {
+        observer.disconnect();
+      });
+      this.visibilityObservers.clear();
       
       // Reinicia os contadores de posição
       this.positionCounters = {};
@@ -416,13 +458,18 @@
           sizes: currentSizes,
           sizeMapping,
           position,
-          positionWithIndex
+          positionWithIndex,
+          isLoaded: false,
+          isVisible: false
         };
         
         this.slots.set(id, slotConfig);
         
         // Define o slot no GPT
         this.defineSlot(slotConfig);
+        
+        // Configura o observer de visibilidade para LazyLoad manual
+        this.setupVisibilityObserver(element, slotConfig);
       });
 
       // Configura o refresh automático se habilitado
@@ -431,6 +478,63 @@
       // Log para debug
       console.log('Posições detectadas:', this.positionCounters);
       console.log('Slots configurados:', this.slots);
+    }
+
+    /**
+     * Configura o observer de visibilidade para LazyLoad manual
+     * @param {HTMLElement} element - Elemento do anúncio
+     * @param {AdSlotConfig} slotConfig - Configuração do slot
+     */
+    setupVisibilityObserver(element, slotConfig) {
+      // Se o navegador não suporta IntersectionObserver, carrega todos os anúncios
+      if (!this.isIntersectionObserverSupported) {
+        this.loadAd(slotConfig.id);
+        return;
+      }
+      
+      // Cria um novo IntersectionObserver
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          // Se o elemento está visível ou próximo de ficar visível
+          if (entry.isIntersecting) {
+            // Carrega o anúncio se ainda não foi carregado
+            if (!slotConfig.isLoaded) {
+              this.loadAd(slotConfig.id);
+            }
+            
+            // Marca o slot como visível
+            slotConfig.isVisible = true;
+            
+            // Para de observar o elemento após carregar o anúncio
+            observer.unobserve(element);
+          }
+        });
+      }, {
+        // Margem de 200px (carrega o anúncio quando estiver a 200px de distância da viewport)
+        rootMargin: '200px',
+        threshold: 0
+      });
+      
+      // Começa a observar o elemento
+      observer.observe(element);
+      
+      // Armazena o observer para limpeza posterior
+      this.visibilityObservers.set(slotConfig.id, observer);
+    }
+
+    /**
+     * Carrega um anúncio específico
+     * @param {string} slotId - ID do slot
+     */
+    loadAd(slotId) {
+      const slotConfig = this.slots.get(slotId);
+      if (!slotConfig || slotConfig.isLoaded) return;
+      
+      this.googletag.cmd.push(() => {
+        // Solicita o anúncio
+        this.googletag.pubads().refresh([this.googletag.pubads().getSlots().find(slot => slot.getSlotElementId() === slotId)]);
+        console.log(`Anúncio ${slotId} carregado`);
+      });
     }
 
     /**
@@ -475,7 +579,7 @@
         slot.setTargeting('pos', config.position);
         
         // Adiciona targeting para a posição com índice sequencial
-        slot.setTargeting('position', config.positionWithIndex);
+        slot.setTargeting('pos_index', config.positionWithIndex);
         
         // Adiciona targeting se disponível
         if (config.targeting) {
@@ -487,8 +591,10 @@
         // Adiciona o slot
         slot.addService(this.googletag.pubads());
         
-        // Renderiza o slot
-        this.googletag.display(config.id);
+        // Se não estiver usando LazyLoad, renderiza o slot imediatamente
+        if (!this.config.enableLazyLoad) {
+          this.googletag.display(config.id);
+        }
       });
     }
 
@@ -531,6 +637,31 @@
     }
 
     /**
+     * Verifica se um elemento está visível na viewport
+     * @param {HTMLElement} element - Elemento a ser verificado
+     * @returns {boolean} - Verdadeiro se o elemento estiver visível
+     */
+    isElementVisible(element) {
+      if (!element) return false;
+      
+      // Se o navegador suporta IntersectionObserver, usa o valor armazenado
+      if (this.isIntersectionObserverSupported) {
+        const slotId = element.id;
+        const slotConfig = this.slots.get(slotId);
+        return slotConfig ? slotConfig.isVisible : false;
+      }
+      
+      // Fallback para verificação manual de visibilidade
+      const rect = element.getBoundingClientRect();
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+      
+      return (
+        rect.top <= windowHeight &&
+        rect.bottom >= 0
+      );
+    }
+
+    /**
      * Obtém os tamanhos para a viewport atual
      * @param {AdSizeMapping[]} sizeMapping - Mapeamento de tamanhos
      * @returns {AdSize[]} Tamanhos para a viewport atual
@@ -562,24 +693,34 @@
       if (!this.initialized) return;
       
       this.googletag.cmd.push(() => {
-        this.slots.forEach((config, id) => {
-          const element = document.getElementById(id);
-          if (!element) return;
+        // Se deve atualizar apenas anúncios visíveis
+        if (this.config.refreshOnlyVisible) {
+          const visibleSlots = [];
           
-          // Atualiza os tamanhos com base na viewport atual
-          if (config.sizeMapping) {
-            const currentSizes = this.getCurrentSizes(config.sizeMapping);
-            config.sizes = currentSizes;
+          // Verifica quais slots estão visíveis
+          this.slots.forEach((config, id) => {
+            const element = document.getElementById(id);
+            if (element && this.isElementVisible(element)) {
+              const slot = this.googletag.pubads().getSlots().find(s => s.getSlotElementId() === id);
+              if (slot) {
+                visibleSlots.push(slot);
+              }
+            }
+          });
+          
+          // Atualiza apenas os slots visíveis
+          if (visibleSlots.length > 0) {
+            this.googletag.pubads().refresh(visibleSlots);
+            console.log(`Atualizados ${visibleSlots.length} anúncios visíveis em ${new Date().toLocaleTimeString()}`);
           }
-        });
-        
-        // Atualiza todos os anúncios
-        this.googletag.pubads().refresh();
+        } else {
+          // Atualiza todos os anúncios
+          this.googletag.pubads().refresh();
+          console.log(`Todos os anúncios atualizados em ${new Date().toLocaleTimeString()}`);
+        }
         
         // Registra o timestamp do refresh
         this.lastRefreshTime = Date.now();
-        
-        console.log(`Anúncios atualizados em ${new Date().toLocaleTimeString()}`);
       });
     }
 
@@ -711,7 +852,9 @@
         slots: Array.from(this.slots.values()).map(slot => ({
           id: slot.id,
           position: slot.position,
-          positionWithIndex: slot.positionWithIndex
+          positionWithIndex: slot.positionWithIndex,
+          isLoaded: slot.isLoaded,
+          isVisible: slot.isVisible
         }))
       };
     }
@@ -793,9 +936,28 @@
     
     /**
      * Atualiza manualmente os anúncios
+     * @param {boolean} [onlyVisible=true] - Atualizar apenas anúncios visíveis
      */
-    refresh: function() {
+    refresh: function(onlyVisible = true) {
+      // Salva a configuração atual
+      const originalConfig = adManager.config.refreshOnlyVisible;
+      
+      // Aplica a configuração temporária
+      adManager.config.refreshOnlyVisible = onlyVisible;
+      
+      // Atualiza os anúncios
       adManager.refreshAds();
+      
+      // Restaura a configuração original
+      adManager.config.refreshOnlyVisible = originalConfig;
+    },
+    
+    /**
+     * Carrega manualmente um anúncio específico
+     * @param {string} slotId - ID do slot
+     */
+    loadAd: function(slotId) {
+      adManager.loadAd(slotId);
     },
     
     /**
@@ -867,6 +1029,16 @@
      */
     getPositionInfo: function() {
       return adManager.getPositionInfo();
+    },
+    
+    /**
+     * Verifica se um elemento está visível na viewport
+     * @param {string} slotId - ID do slot
+     * @returns {boolean} - Verdadeiro se o elemento estiver visível
+     */
+    isSlotVisible: function(slotId) {
+      const element = document.getElementById(slotId);
+      return adManager.isElementVisible(element);
     }
   };
 
