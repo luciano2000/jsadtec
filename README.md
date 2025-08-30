@@ -590,3 +590,115 @@ Se o refresh automático baseado em tempo não for adequado para seu caso, consi
 - Verifique se o valor de `visitorEmailHash` não é nulo
 - Confirme que o script está sendo inicializado após o valor estar disponível
 - Use `updateConfig` se o valor só estiver disponível após a inicialização
+
+---
+# Documentação: Enumeração Sequencial de Posições no Google AdManager
+
+## Visão Geral
+
+Esta atualização do script Google AdManager adiciona uma nova funcionalidade importante: **enumeração sequencial de posições**. Agora, quando você tem múltiplas divs com a mesma posição (por exemplo, vários banners "meio"), o script automaticamente enumera cada uma delas (meio_1, meio_2, etc.) e adiciona essa informação como targeting específico para cada slot.
+
+## Como Funciona
+
+Quando o script detecta múltiplas divs com o mesmo valor de `data-pos`, ele:
+
+1. Conta quantas divs existem para cada posição
+2. Atribui um índice sequencial a cada div (começando em 1)
+3. Cria um targeting específico `pos_index` com o valor `posição_número` (ex: meio_1, meio_2)
+4. Mantém o targeting original `pos` com o valor base (ex: meio)
+
+### Exemplo:
+
+```html
+<!-- Primeira div com data-pos="meio" -->
+<div class="pubad" data-pos="meio"></div>
+
+<!-- Segunda div com data-pos="meio" -->
+<div class="pubad" data-pos="meio"></div>
+
+<!-- Terceira div com data-pos="meio" -->
+<div class="pubad" data-pos="meio"></div>
+```
+
+Após o processamento pelo script, estas divs receberão os seguintes targetings:
+
+1. Primeira div:
+   - `pos: "meio"`
+   - `pos_index: "meio_1"`
+
+2. Segunda div:
+   - `pos: "meio"`
+   - `pos_index: "meio_2"`
+
+3. Terceira div:
+   - `pos: "meio"`
+   - `pos_index: "meio_3"`
+
+## Benefícios
+
+Esta funcionalidade permite:
+
+1. **Segmentação granular**: Direcionar anúncios específicos para posições exatas na página
+2. **Relatórios detalhados**: Analisar o desempenho de cada posição individualmente
+3. **Preços diferenciados**: Definir valores diferentes para a primeira, segunda ou terceira ocorrência de uma posição
+4. **Testes A/B**: Comparar o desempenho entre diferentes ocorrências da mesma posição
+
+## Implementação no Google Ad Manager
+
+No console do Google Ad Manager, você pode agora criar segmentações baseadas no targeting `pos_index`:
+
+1. Crie uma linha de pedido direcionada para posições específicas
+2. Adicione um targeting de chave-valor com:
+   - Chave: `pos_index`
+   - Valor: `meio_1` (para a primeira ocorrência de "meio")
+
+Você também pode criar segmentações para grupos de posições:
+
+- `meio_1,meio_2` (primeira e segunda ocorrência)
+- `topo_1` (apenas o primeiro banner de topo)
+- `inread_[1-3]` (as três primeiras ocorrências de inread)
+
+## Verificação e Depuração
+
+O script inclui um novo método para verificar as posições enumeradas:
+
+```javascript
+// Obter informações sobre as posições enumeradas
+const positionInfo = GoogleAdManager.getPositionInfo();
+console.log(positionInfo);
+```
+
+Isso retornará um objeto com:
+- `counters`: Quantas divs existem para cada posição
+- `slots`: Lista de todos os slots com suas posições base e enumeradas
+
+## Exemplo de Uso Avançado
+
+```javascript
+// Inicialização padrão
+GoogleAdManager.init({
+    networkCode: '23050256432',
+    adUnitPath: '/brasilbuzz',
+    // outras configurações...
+});
+
+// Verificar as posições enumeradas após a inicialização
+console.log(GoogleAdManager.getPositionInfo());
+
+// Adicionar um listener para um slot específico
+GoogleAdManager.addSlotRenderEndedListener('ad-slot-0', function(event) {
+    // Verificar qual posição enumerada foi renderizada
+    const element = document.getElementById('ad-slot-0');
+    console.log('Posição enumerada:', element.dataset.posIndex);
+});
+```
+
+## Compatibilidade
+
+Esta funcionalidade é totalmente compatível com todas as outras características do script:
+- Refresh automático
+- Targets dinâmicos
+- PPID
+- Centralização e margens negativas
+
+Não é necessária nenhuma configuração adicional para ativar esta funcionalidade - ela funciona automaticamente para todas as divs com classe `pubad`.
