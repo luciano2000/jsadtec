@@ -230,6 +230,18 @@
                 console.log(`Slot ${slotId} está visível`);
               }
             });
+
+        try {
+            var name, col, persona = JSON.parse(window.localStorage.getItem("nvgpersona90304"));
+            for (col in persona) {
+                name = "nvg_" + col;
+                name = name.substring(0, 10);
+                if (typeof(googletag) == "object")
+                    this.googletag.pubads().setTargeting(name, persona[col]);
+                if (typeof(GA_googleAddAttr) == "function")
+                    GA_googleAddAttr(name, persona[col]);
+            }
+        } catch (e) {}
             
             // Ativa os serviços
             this.googletag.enableServices();
