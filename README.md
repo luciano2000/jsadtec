@@ -1,6 +1,6 @@
 ## Índice
 1. [Documentação do Google AdManager Simplificado](#documentação-do-google-adManager-simplificado)
-2. [Documentação da Centralização de Anúncios no Google AdManager](#documentacao-da-centralizacao-de-anuncios-no-google-admanager)
+2. [Documentação da Centralização de Anúncios no Google AdManager](#documentação-da-centralizacao-de-anúncios-no-google-admanager)
 ---
 ## Documentação do Google AdManager Simplificado
 
