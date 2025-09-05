@@ -1,5 +1,5 @@
 // Google AdManager - Script Simplificado
-// Versão 3.0.0 - Com LazyLoad, Refresh em banners visíveis e Single Request desativado
+// Versão 3.1.0 - Com LazyLoad, Refresh em banners visíveis, Single Request desativado e Captura automática de UTMs
 
 /**
  * Configuração do AdManager
@@ -17,6 +17,7 @@
  * @property {Object} [marginConfig] - Configuração de margens negativas por posição
  * @property {number} [refresh=0] - Tempo em segundos para refresh automático (0 = desabilitado)
  * @property {boolean} [refreshOnlyVisible=true] - Atualizar apenas anúncios visíveis
+ * @property {boolean} [captureUtmParams=true] - Capturar automaticamente parâmetros UTM da URL
  * @property {string|Array} [pageAttributes] - Atributos da página para targeting
  * @property {string|Array} [pagePostAuthor] - Autor do post para targeting
  * @property {string|Array} [pagePostTermsCat] - Categorias do post para targeting
@@ -79,6 +80,7 @@
     marginConfig: {},
     refresh: 0, // 0 = desabilitado
     refreshOnlyVisible: true, // Atualizar apenas anúncios visíveis
+    captureUtmParams: true, // Capturar automaticamente parâmetros UTM da URL
     pageAttributes: null,
     pagePostAuthor: null,
     pagePostTermsCat: null,
@@ -158,6 +160,7 @@
       this.positionCounters = {}; // Contador para cada posição
       this.visibilityObservers = new Map(); // Armazena os observers de visibilidade para cada slot
       this.isIntersectionObserverSupported = typeof IntersectionObserver !== 'undefined';
+      this.utmParams = {}; // Armazena os parâmetros UTM capturados da URL
     }
 
     /**
@@ -169,6 +172,11 @@
         if (this.initialized) {
           resolve();
           return;
+        }
+
+        // Captura os parâmetros UTM da URL se configurado
+        if (this.config.captureUtmParams) {
+          this.captureUtmParams();
         }
 
         // Adiciona o script do GPT de forma assíncrona
@@ -230,18 +238,6 @@
                 console.log(`Slot ${slotId} está visível`);
               }
             });
-
-        try {
-            var name, col, persona = JSON.parse(window.localStorage.getItem("nvgpersona90304"));
-            for (col in persona) {
-                name = "nvg_" + col;
-                name = name.substring(0, 10);
-                if (typeof(googletag) == "object")
-                    this.googletag.pubads().setTargeting(name, persona[col]);
-                if (typeof(GA_googleAddAttr) == "function")
-                    GA_googleAddAttr(name, persona[col]);
-            }
-        } catch (e) {}
             
             // Ativa os serviços
             this.googletag.enableServices();
@@ -256,9 +252,41 @@
     }
 
     /**
+     * Captura os parâmetros UTM da URL atual
+     */
+    captureUtmParams() {
+      // Lista de parâmetros UTM a serem capturados
+      const utmParamsList = [
+        'utm_campaign',
+        'utm_content',
+        'utm_id',
+        'utm_medium',
+        'utm_source',
+        'utm_term'
+      ];
+      
+      // Obtém os parâmetros da URL atual
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      // Captura cada parâmetro UTM se existir
+      utmParamsList.forEach(param => {
+        const value = urlParams.get(param);
+        if (value) {
+          this.utmParams[param] = value;
+        }
+      });
+      
+      // Log dos parâmetros UTM capturados
+      if (Object.keys(this.utmParams).length > 0) {
+        console.log('Parâmetros UTM capturados:', this.utmParams);
+      }
+    }
+
+    /**
      * Configura os targets globais
      */
     setupGlobalTargeting() {
+      // Targets padrão da configuração
       const targetingParams = [
         { key: 'pageAttributes', value: this.config.pageAttributes },
         { key: 'pagePostAuthor', value: this.config.pagePostAuthor },
@@ -269,11 +297,19 @@
         { key: 'postID', value: this.config.postID }
       ];
       
+      // Aplica os targets padrão
       targetingParams.forEach(param => {
         if (param.value !== null && param.value !== undefined) {
           this.googletag.pubads().setTargeting(param.key, param.value);
         }
       });
+      
+      // Aplica os parâmetros UTM como targets
+      if (this.config.captureUtmParams) {
+        Object.entries(this.utmParams).forEach(([key, value]) => {
+          this.googletag.pubads().setTargeting(key, value);
+        });
+      }
     }
 
     /**
@@ -593,6 +629,13 @@
         // Adiciona targeting para a posição com índice sequencial
         slot.setTargeting('pos_index', config.positionWithIndex);
         
+        // Adiciona os parâmetros UTM como targeting para este slot
+        if (this.config.captureUtmParams) {
+          Object.entries(this.utmParams).forEach(([key, value]) => {
+            slot.setTargeting(key, value);
+          });
+        }
+        
         // Adiciona targeting se disponível
         if (config.targeting) {
           Object.entries(config.targeting).forEach(([key, value]) => {
@@ -852,6 +895,11 @@
       if (config.refresh !== undefined) {
         this.setupRefresh();
       }
+      
+      // Recaptura os parâmetros UTM se a configuração foi alterada
+      if (config.captureUtmParams !== undefined && config.captureUtmParams) {
+        this.captureUtmParams();
+      }
     }
     
     /**
@@ -869,6 +917,14 @@
           isVisible: slot.isVisible
         }))
       };
+    }
+    
+    /**
+     * Obtém os parâmetros UTM capturados
+     * @returns {Object} Objeto com os parâmetros UTM
+     */
+    getUtmParams() {
+      return { ...this.utmParams };
     }
   }
 
@@ -1051,6 +1107,14 @@
     isSlotVisible: function(slotId) {
       const element = document.getElementById(slotId);
       return adManager.isElementVisible(element);
+    },
+    
+    /**
+     * Obtém os parâmetros UTM capturados da URL
+     * @returns {Object} Objeto com os parâmetros UTM
+     */
+    getUtmParams: function() {
+      return adManager.getUtmParams();
     }
   };
 
