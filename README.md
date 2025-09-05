@@ -951,3 +951,174 @@ GoogleAdManager.refresh(false);
 2. **Ajuste fetchMarginPercent e renderMarginPercent** conforme necessário para sua página
 3. **Mantenha o Single Request desativado** a menos que você precise especificamente de exclusões competitivas
 4. **Use refresh apenas em banners visíveis** para melhorar a experiência do usuário e as métricas de viewability
+
+---
+# Documentação: Captura Automática de Parâmetros UTM no Google AdManager
+
+## Visão Geral
+
+Esta atualização do script Google AdManager (versão 3.1.0) implementa uma nova funcionalidade importante: **captura automática de parâmetros UTM da URL**. Agora, o script detecta automaticamente os parâmetros UTM presentes na URL da página e os adiciona como targets para seus anúncios, sem necessidade de configuração manual via TagManager.
+
+## Parâmetros UTM Suportados
+
+O script captura automaticamente os seguintes parâmetros UTM:
+
+- `utm_campaign` - Identifica a campanha de marketing específica
+- `utm_content` - Diferencia anúncios ou links que apontam para o mesmo URL
+- `utm_id` - Identificador único da campanha
+- `utm_medium` - Identifica o meio de marketing (email, CPC, etc.)
+- `utm_source` - Identifica a origem do tráfego (Google, Facebook, etc.)
+- `utm_term` - Identifica palavras-chave pagas
+
+## Como Funciona
+
+1. Quando o script é inicializado, ele automaticamente analisa a URL atual da página
+2. Extrai todos os parâmetros UTM presentes
+3. Adiciona esses parâmetros como targets globais para todos os anúncios
+4. Também aplica os parâmetros UTM como targets individuais para cada slot de anúncio
+
+Isso permite segmentação precisa de anúncios com base nos parâmetros de campanha que trouxeram o usuário para a página.
+
+## Configuração
+
+A captura de parâmetros UTM está **ativada por padrão**, mas pode ser desativada se necessário:
+
+```javascript
+GoogleAdManager.init({
+    networkCode: '23050256432',
+    adUnitPath: '/brasilbuzz',
+    
+    // Configuração de UTM
+    captureUtmParams: true,  // true = ativado (padrão), false = desativado
+    
+    // Outras configurações...
+    collapseEmptyDivs: true,
+    centering: true,
+    enableLazyLoad: true,
+    enableSingleRequest: false,
+    refresh: 30,
+    refreshOnlyVisible: true
+});
+```
+
+## Exemplo de Uso
+
+### Cenário 1: URL com Parâmetros UTM
+
+Quando um usuário acessa sua página através de uma URL como:
+```
+https://seusite.com/pagina?utm_source=facebook&utm_medium=social&utm_campaign=verao2025
+```
+
+O script automaticamente:
+1. Captura os parâmetros UTM (`utm_source=facebook`, `utm_medium=social`, `utm_campaign=verao2025`)
+2. Adiciona-os como targets para todos os anúncios na página
+
+### Cenário 2: Verificação dos Parâmetros UTM Capturados
+
+Você pode verificar quais parâmetros UTM foram capturados usando:
+
+```javascript
+// Verificar os parâmetros UTM capturados
+const utmParams = GoogleAdManager.getUtmParams();
+console.log('Parâmetros UTM:', utmParams);
+```
+
+## Benefícios
+
+- **Sem configuração manual**: Não é necessário configurar variáveis no Google Tag Manager
+- **Segmentação automática**: Todos os anúncios são automaticamente segmentados com base nos parâmetros UTM
+- **Análise de campanhas**: Facilita a análise de desempenho de diferentes campanhas de marketing
+- **Personalização de anúncios**: Permite exibir anúncios específicos com base na origem do tráfego
+
+## Compatibilidade com Outras Funcionalidades
+
+Esta nova funcionalidade é totalmente compatível com todas as características existentes do script:
+
+- LazyLoad para anúncios
+- Refresh apenas em banners visíveis
+- Requisições individuais (Single Request desativado)
+- Centralização e margens negativas
+- Enumeração sequencial de posições
+
+## Exemplo de Implementação Completa
+
+```html
+<script src="https://t.ad.tec.br/google-admanager.js"></script>
+<script>
+    GoogleAdManager.init({
+        networkCode: '23050256432',
+        adUnitPath: '/brasilbuzz',
+        collapseEmptyDivs: true,
+        centering: true,
+        
+        // LazyLoad
+        enableLazyLoad: true,
+        
+        // Single Request desativado
+        enableSingleRequest: false,
+        
+        // Refresh apenas em banners visíveis
+        refresh: 30,
+        refreshOnlyVisible: true,
+        
+        // Captura automática de UTMs
+        captureUtmParams: true,
+        
+        // Outros parâmetros (opcionais)
+        pageAttributes: 'valor1,valor2',
+        pagePostAuthor: 'nome_autor',
+        // ...
+    });
+    
+    // Verificar os parâmetros UTM capturados (opcional)
+    console.log('UTMs capturados:', GoogleAdManager.getUtmParams());
+</script>
+
+<!-- Anúncios serão carregados com os parâmetros UTM como targets -->
+<div class="pubad" data-pos="topo"></div>
+<div class="pubad" data-pos="meio"></div>
+<div class="pubad" data-pos="rodape"></div>
+```
+
+## Considerações Técnicas
+
+- Os parâmetros UTM são capturados apenas uma vez durante a inicialização do script
+- Se a URL mudar após o carregamento da página (navegação SPA), os novos parâmetros UTM não serão capturados automaticamente
+- Para sites com navegação SPA (Single Page Application), você pode chamar `GoogleAdManager.updateConfig({ captureUtmParams: true })` após mudanças na URL
+
+## API Adicional
+
+### Obter Parâmetros UTM Capturados
+
+```javascript
+// Retorna um objeto com todos os parâmetros UTM capturados
+const utmParams = GoogleAdManager.getUtmParams();
+```
+
+### Atualizar Configuração de UTM
+
+```javascript
+// Desativar captura de UTM
+GoogleAdManager.updateConfig({ captureUtmParams: false });
+
+// Reativar captura de UTM (útil após mudanças na URL em SPAs)
+GoogleAdManager.updateConfig({ captureUtmParams: true });
+```
+
+## Depuração
+
+Para verificar se os parâmetros UTM estão sendo corretamente capturados e aplicados:
+
+1. Acesse sua página com parâmetros UTM na URL
+2. Abra o console do navegador
+3. Execute `GoogleAdManager.getUtmParams()`
+4. Verifique se os parâmetros UTM foram capturados corretamente
+
+## Recomendações
+
+1. **Mantenha a captura de UTM ativada** para melhor segmentação de anúncios
+2. **Utilize URLs com parâmetros UTM** em todas as suas campanhas de marketing
+3. **Configure regras no Ad Manager** para exibir anúncios específicos com base nos parâmetros UTM
+4. **Analise o desempenho** dos anúncios por origem de tráfego usando os parâmetros UTM como filtros
+
