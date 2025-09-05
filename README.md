@@ -1,4 +1,8 @@
-# Documentação do Google AdManager Simplificado
+## Índice
+1. [Documentação do Google AdManager Simplificado](#documentação-do-google-adManager-simplificado)
+2. [Documentação da Centralização de Anúncios no Google AdManager](#documentacao-da-centralizacao-de-anuncios-no-google-admanager)
+---
+## Documentação do Google AdManager Simplificado
 
 ## Visão Geral
 
@@ -157,7 +161,7 @@ Veja o arquivo `exemplo-uso.html` para um exemplo completo de implementação.
 - Navegadores modernos com suporte a ES6
 - Internet Explorer 11 não é suportado
 ____
-# Documentação da Centralização de Anúncios no Google AdManager
+## Documentação da Centralização de Anúncios no Google AdManager
 
 ## Visão Geral
 
