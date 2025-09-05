@@ -2,6 +2,7 @@
 1. [Documentação do Google AdManager Simplificado](#documentação-do-google-adManager-simplificado)
 2. [Documentação da Centralização de Anúncios no Google AdManager](#documentação-da-centralização-de-anúncios-no-google-admanager)
 3. [Documentação: Suporte a Banners Maiores que o Container](#documentação-suporte-a-banners-maiores-que-o-container)
+4. [Documentação: Google AdManager com Refresh Automático e Targets Dinâmicos](#documentação-google-admanager-com-refresh-automático-e-targets-dinâmicos)
 ---
 ## Documentação do Google AdManager Simplificado
 
