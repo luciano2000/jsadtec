@@ -3,7 +3,9 @@
 2. [Documentação da Centralização de Anúncios no Google AdManager](#documentação-da-centralização-de-anúncios-no-google-admanager)
 3. [Documentação: Suporte a Banners Maiores que o Container](#documentação-suporte-a-banners-maiores-que-o-container)
 4. [Documentação: Google AdManager com Refresh Automático e Targets Dinâmicos](#documentação-google-admanager-com-refresh-automático-e-targets-dinâmicos)
-5. [Documentação: Enumeração Sequencial de Posições no Google AdManager](#documentacao-enumeração-sequencial-de-posições-no-google-admanager)
+5. [Documentação: Enumeração Sequencial de Posições no Google AdManager](#documentação-enumeração-sequencial-de-posições-no-google-admanager)
+6. [Documentação: Google AdManager com LazyLoad, Refresh em Banners Visíveis e Requisições Individuais](#documentação-google-admanager-com-lazyload-refresh-em-banners-visíveis-e-requisições-individuais)
+7. [Documentação: Captura Automática de Parâmetros UTM no Google AdManager](#documentação-captura-automática-de-parâmetros-utm-no-google-admanager)
 ---
 # Documentação do Google AdManager Simplificado
 
