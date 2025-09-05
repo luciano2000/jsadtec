@@ -164,7 +164,7 @@ Veja o arquivo `exemplo-uso.html` para um exemplo completo de implementação.
 - Navegadores modernos com suporte a ES6
 - Internet Explorer 11 não é suportado
 ____
-## Documentação da Centralização de Anúncios no Google AdManager
+# Documentação da Centralização de Anúncios no Google AdManager
 
 ## Visão Geral
 
@@ -261,7 +261,7 @@ Se os anúncios não estiverem centralizados corretamente:
 
 _____
 
-## Documentação: Suporte a Banners Maiores que o Container
+# Documentação: Suporte a Banners Maiores que o Container
 
 ## Visão Geral
 
