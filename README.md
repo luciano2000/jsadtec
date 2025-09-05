@@ -1,6 +1,7 @@
 ## Índice
 1. [Documentação do Google AdManager Simplificado](#documentação-do-google-adManager-simplificado)
 2. [Documentação da Centralização de Anúncios no Google AdManager](#documentação-da-centralização-de-anúncios-no-google-admanager)
+3. [Documentação: Suporte a Banners Maiores que o Container](#documentação-suporte-a-banners-maiores-que-o-container)
 ---
 ## Documentação do Google AdManager Simplificado
 
@@ -258,7 +259,7 @@ Se os anúncios não estiverem centralizados corretamente:
 
 _____
 
-# Documentação: Suporte a Banners Maiores que o Container
+## Documentação: Suporte a Banners Maiores que o Container
 
 ## Visão Geral
 
