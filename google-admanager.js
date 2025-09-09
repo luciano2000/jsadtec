@@ -119,6 +119,11 @@
       { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] },
       { viewport: [1050, 0], sizes: [{ width: 970, height: 90 }, { width: 970, height: 250 }] }
     ],
+    'container': [
+      { viewport: [0, 0], sizes: [{ width: 300, height: 250 }] },
+      { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] },
+      { viewport: [1050, 0], sizes: [{ width: 728, height: 90 }] }
+    ],    
     'rodape': [
       { viewport: [0, 0], sizes: [{ width: 320, height: 50 }] },
       { viewport: [750, 0], sizes: [{ width: 728, height: 90 }] }
