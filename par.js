@@ -12,7 +12,7 @@
 
         // Encontra o script atual (este script)
         for (let i = 0; i < scripts.length; i++) {
-            if (scripts[i].src.includes("script.js")) { // Pode precisar de um identificador mais robusto se houver outros scripts com 'script.js'
+            if (scripts[i].src.includes("par.js")) { // Pode precisar de um identificador mais robusto se houver outros scripts com 'script.js'
                 currentScript = scripts[i];
                 break;
             }
@@ -100,12 +100,10 @@
     // Insere a barra de navegação no topo do body
     if (document.body) {
         document.body.insertBefore(navBar, document.body.firstChild);
-        console.log("body encontrado, adicionando barra");
     } else {
         // Se o body ainda não estiver disponível, espera o DOM carregar
         document.addEventListener("DOMContentLoaded", () => {
             document.body.insertBefore(navBar, document.body.firstChild);
-                    console.log("body encontrado só depois, adicionando barra");
 
         });
     }
