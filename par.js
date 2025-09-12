@@ -89,6 +89,7 @@
         a.style.color = textColor;
         a.style.textDecoration = "none";
         a.style.fontWeight = "bold";
+        a.style.fontSize = "8px";
         a.style.whiteSpace = "nowrap"; // Evita quebra de linha em nomes longos
 
         // Efeito hover simples
