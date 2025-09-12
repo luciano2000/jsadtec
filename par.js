@@ -57,7 +57,6 @@
     navBar.style.backgroundColor = bgColor;
     navBar.style.color = textColor;
     navBar.style.width = "100%"; // A barra principal sempre terá 100% de largura
-    navBar.style.padding = "10px 0";
     navBar.style.textAlign = "center";
     navBar.style.position = "relative"; // Para garantir que fique no topo
     navBar.style.zIndex = "9999"; // Para garantir que fique acima de outros elementos
@@ -89,7 +88,7 @@
         a.style.color = textColor;
         a.style.textDecoration = "none";
         a.style.fontWeight = "bold";
-        a.style.fontSize = "8px";
+        a.style.fontSize = "12px";
         a.style.whiteSpace = "nowrap"; // Evita quebra de linha em nomes longos
 
         // Efeito hover simples
