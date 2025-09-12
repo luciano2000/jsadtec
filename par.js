@@ -68,7 +68,7 @@
     ul.style.margin = "0 auto"; // Centraliza o menu interno
     ul.style.padding = "0";
     ul.style.display = "flex";
-    ul.style.justifyContent = "center";
+    ul.style.justifyContent = "space-between";
     ul.style.flexWrap = "wrap";
     ul.style.width = menuWidth; // Aplica a largura configurável ao menu interno
     if (menuClass) {
