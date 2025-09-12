@@ -61,6 +61,7 @@
     navBar.style.textAlign = "center";
     navBar.style.position = "relative"; // Para garantir que fique no topo
     navBar.style.zIndex = "9999"; // Para garantir que fique acima de outros elementos
+    navBar.id = "parceiros";
 
     const ul = document.createElement("ul");
     ul.style.listStyle = "none";
@@ -99,10 +100,13 @@
     // Insere a barra de navegação no topo do body
     if (document.body) {
         document.body.insertBefore(navBar, document.body.firstChild);
+        console.log("body encontrado, adicionando barra");
     } else {
         // Se o body ainda não estiver disponível, espera o DOM carregar
         document.addEventListener("DOMContentLoaded", () => {
             document.body.insertBefore(navBar, document.body.firstChild);
+                    console.log("body encontrado só depois, adicionando barra");
+
         });
     }
 })();
