@@ -61,16 +61,20 @@
     navBar.style.textAlign = "center";
     navBar.style.position = "relative"; // Para garantir que fique no topo
     navBar.style.zIndex = "9999"; // Para garantir que fique acima de outros elementos
-    navBar.id = "parceiros";
 
     const ul = document.createElement("ul");
     ul.style.listStyle = "none";
     ul.style.margin = "0 auto"; // Centraliza o menu interno
     ul.style.padding = "0";
     ul.style.display = "flex";
-    ul.style.justifyContent = "space-between";
+    ul.style.justifyContent = "center";
     ul.style.flexWrap = "wrap";
-    ul.style.width = menuWidth; // Aplica a largura configurável ao menu interno
+
+    // Aplica a largura configurável ao menu interno SOMENTE se nenhuma classe CSS for fornecida
+    if (!menuClass) {
+        ul.style.width = menuWidth;
+    }
+
     if (menuClass) {
         ul.classList.add(menuClass);
     }
@@ -104,7 +108,6 @@
         // Se o body ainda não estiver disponível, espera o DOM carregar
         document.addEventListener("DOMContentLoaded", () => {
             document.body.insertBefore(navBar, document.body.firstChild);
-
         });
     }
 })();
