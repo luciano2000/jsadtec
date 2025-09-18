@@ -6,6 +6,8 @@
 5. [Documentação: Enumeração Sequencial de Posições no Google AdManager](#documentação-enumeração-sequencial-de-posições-no-google-admanager)
 6. [Documentação: Google AdManager com LazyLoad, Refresh em Banners Visíveis e Requisições Individuais](#documentação-google-admanager-com-lazyload-refresh-em-banners-visíveis-e-requisições-individuais)
 7. [Documentação: Captura Automática de Parâmetros UTM no Google AdManager](#documentação-captura-automática-de-parâmetros-utm-no-google-admanager)
+8. [Documentação: Adição de Navegg Analytics](#documentação-integração-com-navegg-analytics-no-google-admanager)
+
 ---
 # Documentação do Google AdManager Simplificado
 
@@ -1131,3 +1133,152 @@ Para verificar se os parâmetros UTM estão sendo corretamente capturados e apli
 3. **Configure regras no Ad Manager** para exibir anúncios específicos com base nos parâmetros UTM
 4. **Analise o desempenho** dos anúncios por origem de tráfego usando os parâmetros UTM como filtros
 
+----
+
+# Documentação: Integração com Navegg Analytics no Google AdManager
+
+## Visão Geral
+
+Esta atualização da documentação inclui informações sobre a integração do script Google AdManager com o **Navegg Analytics**, permitindo a aplicação automática de dados de persona como targeting para seus anúncios.
+
+## O que é o Navegg Analytics?
+
+O Navegg é uma plataforma de DMP (Data Management Platform) que coleta e organiza dados de audiência para melhorar a segmentação de anúncios. A integração com o Navegg permite que você utilize dados de persona para direcionar anúncios mais relevantes aos seus usuários.
+
+## Como Funciona
+
+1. O Navegg armazena dados de persona no `localStorage` do navegador do usuário
+2. O script Google AdManager recupera esses dados usando a chave configurada em `nvgAnalytics`
+3. Os dados são processados e aplicados como targeting para todos os anúncios
+4. Cada atributo de persona é prefixado com `nvg_` e limitado a 10 caracteres
+
+## Configuração
+
+Para utilizar a integração com o Navegg Analytics, adicione o parâmetro `nvgAnalytics` na inicialização do script:
+
+```javascript
+GoogleAdManager.init({
+    networkCode: '23050256432',
+    adUnitPath: '/brasilbuzz',
+    
+    // Configuração do Navegg Analytics
+    nvgAnalytics: 'NAVEGG_STORAGE_KEY',  // Substitua pela sua chave do Navegg
+    
+    // Outras configurações...
+    collapseEmptyDivs: true,
+    centering: true,
+    enableLazyLoad: true,
+    enableSingleRequest: false,
+    refresh: 30,
+    refreshOnlyVisible: true,
+    captureUtmParams: true
+});
+```
+
+Substitua `'NAVEGG_STORAGE_KEY'` pela chave específica fornecida pelo Navegg para seu site.
+
+## Exemplo de Uso
+
+### Cenário: Integração Completa com Navegg
+
+```html
+<script src="https://t.ad.tec.br/google-admanager.js"></script>
+<script>
+    GoogleAdManager.init({
+        networkCode: '23050256432',
+        adUnitPath: '/brasilbuzz',
+        
+        // Navegg Analytics
+        nvgAnalytics: 'navegg_12345',  // Sua chave específica do Navegg
+        
+        // Outras configurações
+        collapseEmptyDivs: true,
+        centering: true,
+        enableLazyLoad: true,
+        enableSingleRequest: false,
+        refresh: 30,
+        refreshOnlyVisible: true
+    });
+</script>
+
+<!-- Anúncios serão carregados com targeting de persona do Navegg -->
+<div class="pubad" data-pos="topo"></div>
+<div class="pubad" data-pos="meio"></div>
+<div class="pubad" data-pos="rodape"></div>
+```
+
+## Como Verificar a Integração
+
+Para verificar se os dados do Navegg estão sendo corretamente aplicados como targeting:
+
+1. Abra o console do navegador
+2. Verifique o localStorage para confirmar a presença dos dados do Navegg:
+   ```javascript
+   console.log(JSON.parse(localStorage.getItem('NAVEGG_STORAGE_KEY')));
+   ```
+3. Inspecione as chamadas de anúncios no Google Ad Manager para verificar se os parâmetros `nvg_*` estão sendo enviados
+
+## Benefícios
+
+- **Segmentação avançada**: Utilize dados de comportamento e interesse para direcionar anúncios mais relevantes
+- **Maior taxa de conversão**: Anúncios mais relevantes tendem a ter melhor desempenho
+- **Integração automática**: Não é necessário código adicional para aplicar os dados do Navegg como targeting
+- **Compatibilidade**: Funciona em conjunto com todas as outras funcionalidades do script (LazyLoad, refresh por visibilidade, etc.)
+
+## Considerações Técnicas
+
+- Os dados do Navegg são recuperados apenas uma vez durante a inicialização do script
+- Se os dados do Navegg forem atualizados após o carregamento da página, será necessário reinicializar o script ou atualizar a configuração
+- O script trata automaticamente possíveis erros na recuperação ou processamento dos dados do Navegg
+- Os nomes dos atributos são prefixados com `nvg_` e limitados a 10 caracteres para compatibilidade com o Google Ad Manager
+
+## Compatibilidade com Outras Funcionalidades
+
+Esta funcionalidade é totalmente compatível com todas as características existentes do script:
+
+- LazyLoad para anúncios
+- Refresh apenas em banners visíveis
+- Requisições individuais (Single Request desativado)
+- Centralização e margens negativas
+- Enumeração sequencial de posições
+- Captura automática de parâmetros UTM
+
+## Exemplo de Implementação Completa
+
+```html
+<script src="https://t.ad.tec.br/google-admanager.js"></script>
+<script>
+    GoogleAdManager.init({
+        networkCode: '23050256432',
+        adUnitPath: '/brasilbuzz',
+        
+        // Navegg Analytics
+        nvgAnalytics: 'navegg_12345',
+        
+        // Captura automática de UTMs
+        captureUtmParams: true,
+        
+        // PPID para identificação de usuário
+        visitorEmailHash: 'hash_do_email_do_usuario',
+        
+        // LazyLoad e refresh
+        enableLazyLoad: true,
+        refresh: 30,
+        refreshOnlyVisible: true,
+        
+        // Single Request desativado
+        enableSingleRequest: false,
+        
+        // Outras configurações
+        collapseEmptyDivs: true,
+        centering: true
+    });
+</script>
+```
+
+## Recomendações
+
+1. **Verifique a implementação do Navegg** em seu site antes de configurar esta integração
+2. **Use a chave correta** fornecida pelo Navegg para seu site
+3. **Configure regras no Ad Manager** para aproveitar os dados de persona do Navegg
+4. **Analise o desempenho** dos anúncios segmentados com dados do Navegg para otimizar suas campanhas
