@@ -26,6 +26,7 @@
  * @property {string|Array} [pagePostType2] - Tipo de post secundário para targeting
  * @property {string|number} [postID] - ID do post para targeting
  * @property {string} [visitorEmailHash] - Hash do email do visitante para PPID
+ * @property {string} [nvgAnalytics] - String do Analytics da Navegg
  */
 
 /**
@@ -88,7 +89,9 @@
     pagePostType: null,
     pagePostType2: null,
     postID: null,
-    visitorEmailHash: null
+    visitorEmailHash: null,
+    nvgAnalytics: null
+
   };
 
   /**
@@ -224,6 +227,23 @@
             if (this.config.visitorEmailHash) {
               this.googletag.pubads().setPublisherProvidedId(this.config.visitorEmailHash);
             }
+            // Configura o Navegg Analytics Caso Precise
+
+            if (this.config.nvgAnalytics) {
+                      try {
+            var name, col, persona = JSON.parse(window.localStorage.getItem(this.config.nvgAnalytics));
+            for (col in persona) {
+                name = "nvg_" + col;
+                name = name.substring(0, 10);
+                if (typeof(googletag) == "object")
+                    this.googletag.pubads().setTargeting(name, persona[col]);
+                if (typeof(GA_googleAddAttr) == "function")
+                    GA_googleAddAttr(name, persona[col]);
+            }
+        } catch (e) {}
+
+            }
+            
             
             // Configura os targets globais
             this.setupGlobalTargeting();
@@ -244,18 +264,6 @@
               }
             });
 
-            
-        try {
-            var name, col, persona = JSON.parse(window.localStorage.getItem("nvgpersona90304"));
-            for (col in persona) {
-                name = "nvg_" + col;
-                name = name.substring(0, 10);
-                if (typeof(googletag) == "object")
-                    this.googletag.pubads().setTargeting(name, persona[col]);
-                if (typeof(GA_googleAddAttr) == "function")
-                    GA_googleAddAttr(name, persona[col]);
-            }
-        } catch (e) {}
             
             // Ativa os serviços
             this.googletag.enableServices();
