@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdTec v2 — Exemplo de Implementação</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
+        header { background: #1a1a2e; color: #fff; padding: 20px; text-align: center; }
+        header h1 { font-size: 1.4rem; font-weight: 600; }
+        header p { font-size: 0.85rem; color: #aaa; margin-top: 4px; }
+        main { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        section { margin-bottom: 30px; }
+        section h2 { font-size: 1.1rem; margin-bottom: 10px; color: #1a1a2e; }
+        section p { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
+
+        /* Estilo visual para as divs de anúncio (apenas para debug/exemplo) */
+        .adtec {
+            background: #e8e8e8;
+            border: 2px dashed #bbb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 0.75rem;
+            margin: 10px auto;
+            min-height: 50px;
+        }
+
+        .sidebar { display: flex; gap: 20px; flex-wrap: wrap; }
+        .sidebar .content { flex: 1; min-width: 300px; }
+        .sidebar .aside { width: 300px; }
+
+        code { background: #eee; padding: 2px 6px; border-radius: 3px; font-size: 0.8rem; }
+        pre { background: #1a1a2e; color: #e0e0e0; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 0.8rem; margin: 10px 0; }
+        pre .comment { color: #6a9955; }
+        pre .string { color: #ce9178; }
+        pre .keyword { color: #569cd6; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>AdTec v2 — GPT Ad Manager com SRA</h1>
+    <p>Demonstração de todos os tipos de banner IAB via data-tam</p>
+</header>
+
+<main>
+
+    <!-- ============================================ -->
+    <!-- TOPO: Leaderboard (728x90) -->
+    <!-- ============================================ -->
+    <section>
+        <h2>Leaderboard (728x90)</h2>
+        <p>Uso: <code>&lt;div class="adtec" data-tam="leaderboard"&gt;&lt;/div&gt;</code></p>
+        <div class="adtec" data-tam="leaderboard" style="width:728px; height:90px;">
+            leaderboard — 728x90
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- CONTEÚDO + SIDEBAR -->
+    <!-- ============================================ -->
+    <div class="sidebar">
+        <div class="content">
+            <section>
+                <h2>Billboard (970x250) com targeting de channel</h2>
+                <p>Uso: <code>&lt;div class="adtec" data-tam="billboard" data-channel="esportes"&gt;&lt;/div&gt;</code></p>
+                <div class="adtec" data-tam="billboard" data-channel="esportes" style="width:970px; max-width:100%; height:250px;">
+                    billboard — 970x250 — channel=esportes
+                </div>
+            </section>
+
+            <section>
+                <h2>Super Leaderboard (970x90)</h2>
+                <p>Uso: <code>&lt;div class="adtec" data-tam="super-leaderboard"&gt;&lt;/div&gt;</code></p>
+                <div class="adtec" data-tam="super-leaderboard" style="width:970px; max-width:100%; height:90px;">
+                    super-leaderboard — 970x90
+                </div>
+            </section>
+
+            <section>
+                <h2>Banner Clássico (468x60)</h2>
+                <p>Uso: <code>&lt;div class="adtec" data-tam="banner"&gt;&lt;/div&gt;</code></p>
+                <div class="adtec" data-tam="banner" style="width:468px; height:60px;">
+                    banner — 468x60
+                </div>
+            </section>
+
+            <section>
+                <h2>Multi-size: Leaderboard + Billboard no mesmo slot</h2>
+                <p>Uso: <code>&lt;div class="adtec" data-tam="leaderboard,billboard"&gt;&lt;/div&gt;</code></p>
+                <div class="adtec" data-tam="leaderboard,billboard" style="width:970px; max-width:100%; height:250px;">
+                    multi-size — 728x90 ou 970x250
+                </div>
+            </section>
+
+            <section>
+                <h2>Tamanho custom via WxH</h2>
+                <p>Uso: <code>&lt;div class="adtec" data-tam="300x100"&gt;&lt;/div&gt;</code></p>
+                <div class="adtec" data-tam="300x100" style="width:300px; height:100px;">
+                    custom — 300x100
+                </div>
+            </section>
+
+            <section>
+                <h2>Targeting customizado com data-target-*</h2>
+                <p>Uso: <code>&lt;div class="adtec" data-tam="medium-rectangle" data-author="joao" data-target-secao="politica"&gt;&lt;/div&gt;</code></p>
+                <div class="adtec" data-tam="medium-rectangle" data-author="joao" data-target-secao="politica" style="width:300px; height:250px;">
+                    medium-rectangle — author=joao, secao=politica
+                </div>
+            </section>
+        </div>
+
+        <div class="aside">
+            <section>
+                <h2>Medium Rectangle (300x250)</h2>
+                <p><code>data-tam="medium-rectangle"</code></p>
+                <div class="adtec" data-tam="medium-rectangle" style="width:300px; height:250px;">
+                    medium-rectangle — 300x250
+                </div>
+            </section>
+
+            <section>
+                <h2>Half Page (300x600)</h2>
+                <p><code>data-tam="half-page"</code></p>
+                <div class="adtec" data-tam="half-page" style="width:300px; height:600px;">
+                    half-page — 300x600
+                </div>
+            </section>
+
+            <section>
+                <h2>Wide Skyscraper (160x600)</h2>
+                <p><code>data-tam="wide-skyscraper"</code></p>
+                <div class="adtec" data-tam="wide-skyscraper" style="width:160px; height:600px;">
+                    wide-skyscraper — 160x600
+                </div>
+            </section>
+
+            <section>
+                <h2>Large Rectangle (336x280)</h2>
+                <p><code>data-tam="large-rectangle"</code></p>
+                <div class="adtec" data-tam="large-rectangle" style="width:336px; height:280px;">
+                    large-rectangle — 336x280
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MOBILE BANNERS -->
+    <!-- ============================================ -->
+    <section>
+        <h2>Mobile Banner (320x50)</h2>
+        <p>Uso: <code>&lt;div class="adtec" data-tam="mobile-banner"&gt;&lt;/div&gt;</code></p>
+        <div class="adtec" data-tam="mobile-banner" style="width:320px; height:50px;">
+            mobile-banner — 320x50
+        </div>
+    </section>
+
+    <section>
+        <h2>Mobile Banner Large (320x100)</h2>
+        <p>Uso: <code>&lt;div class="adtec" data-tam="mobile-banner-large"&gt;&lt;/div&gt;</code></p>
+        <div class="adtec" data-tam="mobile-banner-large" style="width:320px; height:100px;">
+            mobile-banner-large — 320x100
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- AD UNIT CUSTOMIZADO POR SLOT -->
+    <!-- ============================================ -->
+    <section>
+        <h2>Ad Unit customizado por slot (data-unit)</h2>
+        <p>Uso: <code>&lt;div class="adtec" data-tam="medium-rectangle" data-unit="/rede/site/especial"&gt;&lt;/div&gt;</code></p>
+        <div class="adtec" data-tam="medium-rectangle" data-unit="/rede/site/especial" style="width:300px; height:250px;">
+            medium-rectangle — ad unit custom: /rede/site/especial
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- DOCUMENTAÇÃO DE USO -->
+    <!-- ============================================ -->
+    <section>
+        <h2>Como Usar</h2>
+        <pre><span class="comment">&lt;!-- 1. Adicione as divs com classe "adtec" e data-tam --&gt;</span>
+&lt;div class=<span class="string">"adtec"</span> data-tam=<span class="string">"leaderboard"</span>&gt;&lt;/div&gt;
+&lt;div class=<span class="string">"adtec"</span> data-tam=<span class="string">"medium-rectangle"</span> data-channel=<span class="string">"esportes"</span>&gt;&lt;/div&gt;
+&lt;div class=<span class="string">"adtec"</span> data-tam=<span class="string">"300x600"</span>&gt;&lt;/div&gt;
+
+<span class="comment">&lt;!-- 2. Inclua o script e inicialize --&gt;</span>
+&lt;script src=<span class="string">"adtec.min.js"</span>&gt;&lt;/script&gt;
+&lt;script&gt;
+  AdTec.init({
+    networkCode: <span class="string">'12345678'</span>,     <span class="comment">// Código da rede (obrigatório)</span>
+    adUnitPath:  <span class="string">'/rede/site'</span>,    <span class="comment">// Caminho da ad unit (obrigatório)</span>
+    collapseEmpty: <span class="keyword">true</span>,           <span class="comment">// Ocultar divs sem anúncio</span>
+    targeting: {                    <span class="comment">// Targeting global (opcional)</span>
+      channel: <span class="string">'esportes'</span>,
+      author:  <span class="string">'joao'</span>
+    }
+  });
+&lt;/script&gt;</pre>
+    </section>
+
+    <section>
+        <h2>API JavaScript</h2>
+        <pre><span class="comment">// Inicializar</span>
+AdTec.init({ networkCode: <span class="string">'12345678'</span>, adUnitPath: <span class="string">'/rede/site'</span> });
+
+<span class="comment">// Refresh de todos os slots</span>
+AdTec.refresh();
+
+<span class="comment">// Refresh de slots específicos</span>
+AdTec.refresh([<span class="string">'adtec-slot-0'</span>, <span class="string">'adtec-slot-2'</span>]);
+
+<span class="comment">// Ver slots definidos (debug)</span>
+console.table(AdTec.getSlots());
+
+<span class="comment">// Versão</span>
+console.log(AdTec.version); <span class="comment">// "2.0.0"</span></pre>
+    </section>
+
+</main>
+
+<!-- ============================================ -->
+<!-- SCRIPT: AdTec v2 -->
+<!-- ============================================ -->
+<script src="adtec.js"></script>
+<script>
+    // ATENÇÃO: Substitua networkCode e adUnitPath pelos valores da sua rede do Ad Manager
+    AdTec.init({
+        networkCode: '12345678',
+        adUnitPath: '/rede/site',
+        targeting: {
+            channel: 'exemplo',
+            pagetype: 'demo'
+        }
+    });
+</script>
+
+</body>
+</html>
