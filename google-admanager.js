@@ -166,9 +166,8 @@
       this.slotSizes = new Map(); // Armazena os tamanhos reais dos slots renderizados
       this.lastRefreshTime = 0; // Armazena o timestamp do último refresh
       this.positionCounters = {}; // Contador para cada posição
-      this.visibilityObservers = new Map(); // Armazena os observers de visibilidade para cada slot
-      this.isIntersectionObserverSupported = typeof IntersectionObserver !== 'undefined';
       this.utmParams = {}; // Armazena os parâmetros UTM capturados da URL
+      this.lastWindowWidth = typeof window !== 'undefined' ? window.innerWidth : 0; // Para detecção inteligente de resize
     }
 
     /**
@@ -470,12 +469,8 @@
         return;
       }
 
-      // Limpa slots existentes e observers
+      // Limpa slots existentes
       this.slots.clear();
-      this.visibilityObservers.forEach(observer => {
-        observer.disconnect();
-      });
-      this.visibilityObservers.clear();
       
       // Reinicia os contadores de posição
       this.positionCounters = {};
@@ -542,9 +537,6 @@
         
         // Define o slot no GPT
         this.defineSlot(slotConfig);
-        
-        // Configura o observer de visibilidade para LazyLoad manual
-        this.setupVisibilityObserver(element, slotConfig);
       });
 
       // Configura o refresh automático se habilitado
@@ -553,48 +545,6 @@
       // Log para debug
       console.log('Posições detectadas:', this.positionCounters);
       console.log('Slots configurados:', this.slots);
-    }
-
-    /**
-     * Configura o observer de visibilidade para LazyLoad manual
-     * @param {HTMLElement} element - Elemento do anúncio
-     * @param {AdSlotConfig} slotConfig - Configuração do slot
-     */
-    setupVisibilityObserver(element, slotConfig) {
-      // Se o navegador não suporta IntersectionObserver, carrega todos os anúncios
-      if (!this.isIntersectionObserverSupported) {
-        this.loadAd(slotConfig.id);
-        return;
-      }
-      
-      // Cria um novo IntersectionObserver
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          // Se o elemento está visível ou próximo de ficar visível
-          if (entry.isIntersecting) {
-            // Carrega o anúncio se ainda não foi carregado
-            if (!slotConfig.isLoaded) {
-              this.loadAd(slotConfig.id);
-            }
-            
-            // Marca o slot como visível
-            slotConfig.isVisible = true;
-            
-            // Para de observar o elemento após carregar o anúncio
-            observer.unobserve(element);
-          }
-        });
-      }, {
-        // Margem de 200px (carrega o anúncio quando estiver a 200px de distância da viewport)
-        rootMargin: '200px',
-        threshold: 0
-      });
-      
-      // Começa a observar o elemento
-      observer.observe(element);
-      
-      // Armazena o observer para limpeza posterior
-      this.visibilityObservers.set(slotConfig.id, observer);
     }
 
     /**
@@ -726,14 +676,7 @@
     isElementVisible(element) {
       if (!element) return false;
       
-      // Se o navegador suporta IntersectionObserver, usa o valor armazenado
-      if (this.isIntersectionObserverSupported) {
-        const slotId = element.id;
-        const slotConfig = this.slots.get(slotId);
-        return slotConfig ? slotConfig.isVisible : false;
-      }
-      
-      // Fallback para verificação manual de visibilidade
+      // Verificação de visibilidade pelo posicionamento do elemento na janela
       const rect = element.getBoundingClientRect();
       const windowHeight = window.innerHeight || document.documentElement.clientHeight;
       
@@ -807,7 +750,7 @@
     }
 
     /**
-     * Configura o evento de redimensionamento para atualizar anúncios
+     * Configura o evento de redimensionamento para atualizar anúncios apenas se necessário
      */
     setupResizeListener() {
       window.addEventListener('resize', () => {
@@ -815,10 +758,28 @@
           window.clearTimeout(this.resizeTimeout);
         }
         
-        // Debounce para evitar muitas atualizações durante o redimensionamento
+        // Debounce maior para evitar atualizações durante o redimensionamento contínuo
         this.resizeTimeout = window.setTimeout(() => {
-          this.refreshAds();
-        }, 300);
+          const currentWidth = window.innerWidth;
+          
+          // Breakpoints definidos pelas configurações do mapeamento (adSizesByPosition)
+          const breakpoints = [750, 1000, 1050, 1300];
+          
+          let crossedBreakpoint = false;
+          for (const bp of breakpoints) {
+            // Verifica se a largura cruzou o breakpoint em qualquer direção
+            if ((this.lastWindowWidth < bp && currentWidth >= bp) || 
+                (this.lastWindowWidth >= bp && currentWidth < bp)) {
+              crossedBreakpoint = true;
+              break;
+            }
+          }
+          
+          if (crossedBreakpoint) {
+            this.lastWindowWidth = currentWidth;
+            this.refreshAds();
+          }
+        }, 500);
       });
     }
 
@@ -977,26 +938,41 @@
         // Configura o listener de redimensionamento
         adManager.setupResizeListener();
         
-        // Configura um MutationObserver para detectar novos slots de anúncios
+        // Setup de timeout para Debounce do MutationObserver
+        let mutationObserverTimeout = null;
+        
+        // Configura um MutationObserver otimizado para detectar novos slots de anúncios
         const observer = new MutationObserver((mutations) => {
           let shouldRefresh = false;
           
-          mutations.forEach((mutation) => {
+          for (const mutation of mutations) {
             if (mutation.type === 'childList') {
-              mutation.addedNodes.forEach((node) => {
+              for (const node of mutation.addedNodes) {
                 if (node.nodeType === Node.ELEMENT_NODE) {
-                  const element = node;
-                  if (element.querySelector && (element.querySelector('.pubad') || element.classList && element.classList.contains('pubad'))) {
+                  // Primeiro verifica se o próprio nó é o anúncio (muito rápido)
+                  if (node.classList && node.classList.contains('pubad')) {
                     shouldRefresh = true;
+                    break;
+                  }
+                  // Se não, busca nos filhos sem processamento duplo complexo
+                  if (node.querySelector && node.querySelector('.pubad')) {
+                    shouldRefresh = true;
+                    break;
                   }
                 }
-              });
+              }
             }
-          });
+            if (shouldRefresh) break;
+          }
           
           if (shouldRefresh) {
-            // Atualiza os slots quando novos elementos são adicionados
-            adManager.detectAdSlots();
+            // Aplica um Debounce de 300ms para evitar travamentos na thread principal
+            if (mutationObserverTimeout) {
+              window.clearTimeout(mutationObserverTimeout);
+            }
+            mutationObserverTimeout = window.setTimeout(() => {
+              adManager.detectAdSlots();
+            }, 300);
           }
         });
         
