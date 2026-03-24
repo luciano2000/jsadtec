@@ -1,5 +1,5 @@
 // Google AdManager - Script Simplificado
-// Versão 3.1.0 - Com LazyLoad, Refresh em banners visíveis, Single Request desativado e Captura automática de UTMs
+// Versão 4.0.0 - (Core Optimizado): LazyLoad Nativo Otimizado, Debounce Observers Ativo, Navegg Isolado
 
 /**
  * Configuração do AdManager
@@ -61,6 +61,7 @@
 
   // Namespace global
   window.GoogleAdManager = window.GoogleAdManager || {};
+  console.log('%c🚀 JSAdtec GoogleAdManager v4.0.0-optimized %c- Core Loaded Successfully', 'color: #00d1b2; font-weight: bold; font-size: 12px;', 'color: #fff;');
 
   /**
    * Configuração padrão do AdManager
@@ -75,7 +76,7 @@
     fetchMarginPercent: 100, // 100% = 1 viewport de distância
     renderMarginPercent: 50, // 50% = metade de um viewport de distância
     mobileScaling: 2.0, // Escala para dispositivos móveis
-    disableInitialLoad: true, // Desabilita carregamento inicial para permitir LazyLoad
+    disableInitialLoad: false, // Carregamento inicial automático para permitir o LazyLoad nativo agir
     centering: false,
     applyNegativeMargin: false,
     marginConfig: {},
@@ -208,12 +209,13 @@
               this.googletag.pubads().collapseEmptyDivs();
             }
             
-            // Desabilita o carregamento inicial para permitir LazyLoad
-            if (this.config.disableInitialLoad || this.config.enableLazyLoad) {
+            // Requerimento estrito: desabilita o carregamento inicial APENAS se explicitamente solicitado
+            // ATENÇÃO: Se disableInitialLoad for true, o LazyLoad nativo não renderiza automaticamente
+            if (this.config.disableInitialLoad) {
               this.googletag.pubads().disableInitialLoad();
             }
             
-            // Configura o LazyLoad se habilitado
+            // Configura o LazyLoad nativo se habilitado
             if (this.config.enableLazyLoad) {
               this.googletag.pubads().enableLazyLoad({
                 fetchMarginPercent: this.config.fetchMarginPercent,
@@ -229,18 +231,20 @@
             // Configura o Navegg Analytics Caso Precise
 
             if (this.config.nvgAnalytics) {
-                      try {
-            var name, col, persona = JSON.parse(window.localStorage.getItem(this.config.nvgAnalytics));
-            for (col in persona) {
-                name = "nvg_" + col;
-                name = name.substring(0, 10);
-                if (typeof(googletag) == "object")
-                    this.googletag.pubads().setTargeting(name, persona[col]);
-                if (typeof(GA_googleAddAttr) == "function")
-                    GA_googleAddAttr(name, persona[col]);
-            }
-        } catch (e) {}
-
+              const nvgKey = this.config.nvgAnalytics;
+              (function(w) {
+                  try {
+                      var name, col, persona = JSON.parse(w.localStorage.getItem(nvgKey));
+                      for (col in persona) {
+                          name = "nvg_" + col;
+                          name = name.substring(0, 10);
+                          if (typeof(googletag) == "object" && typeof(googletag.pubads) == "function")
+                              googletag.pubads().setTargeting(name, persona[col]);
+                          if (typeof(w.GA_googleAddAttr) == "function")
+                              w.GA_googleAddAttr(name, persona[col]);
+                      }
+                  } catch (e) {}
+              })(window);
             }
             
             
@@ -569,8 +573,10 @@
      */
     defineSlot(config) {
       this.googletag.cmd.push(() => {
-        // Cria o caminho completo da unidade de anúncio
-        const adUnitPath = `${this.config.networkCode}${this.config.adUnitPath}`;
+        // Cria o caminho completo da unidade de anúncio protegendo contra sintaxe inválida
+        const netCode = this.config.networkCode.toString().startsWith('/') ? this.config.networkCode : `/${this.config.networkCode}`;
+        const unitPath = this.config.adUnitPath.startsWith('/') ? this.config.adUnitPath : `/${this.config.adUnitPath}`;
+        const adUnitPath = `${netCode}${unitPath}`;
         
         // Define o slot com os tamanhos disponíveis
         const slot = this.googletag.defineSlot(
@@ -623,10 +629,9 @@
         // Adiciona o slot
         slot.addService(this.googletag.pubads());
         
-        // Se não estiver usando LazyLoad, renderiza o slot imediatamente
-        if (!this.config.enableLazyLoad) {
-          this.googletag.display(config.id);
-        }
+        // Aciona o display nativo do GPT. Se o LazyLoad nativo estiver ativo,
+        // ele apenas registrará o slot e pausará o fetch até estar visível.
+        this.googletag.display(config.id);
       });
     }
 
