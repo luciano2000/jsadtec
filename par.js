@@ -84,6 +84,7 @@
 
         const a = document.createElement("a");
         a.href = partner.url;
+        a.target = "_blank";
         a.textContent = partner.name.toUpperCase();
         a.style.color = textColor;
         a.style.textDecoration = "none";
