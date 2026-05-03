@@ -1,5 +1,5 @@
 // Google AdManager - Script Simplificado
-// Versão 4.0.0 - (Core Optimizado): LazyLoad Nativo Otimizado, Debounce Observers Ativo, Navegg Isolado
+// Versão 4.1.0 - (GPT API Update): Migração de slot.setTargeting() e pubads().setTargeting() para setConfig() (API moderna GPT)
 
 /**
  * Configuração do AdManager
@@ -61,7 +61,7 @@
 
   // Namespace global
   window.GoogleAdManager = window.GoogleAdManager || {};
-  console.log('%c🚀 JSAdtec GoogleAdManager v4.0.0-optimized %c- Core Loaded Successfully', 'color: #00d1b2; font-weight: bold; font-size: 12px;', 'color: #fff;');
+  console.log('%c🚀 JSAdtec GoogleAdManager v4.1.0 %c- Core Loaded Successfully', 'color: #00d1b2; font-weight: bold; font-size: 12px;', 'color: #fff;');
 
   /**
    * Configuração padrão do AdManager
@@ -238,8 +238,8 @@
                       for (col in persona) {
                           name = "nvg_" + col;
                           name = name.substring(0, 10);
-                          if (typeof(googletag) == "object" && typeof(googletag.pubads) == "function")
-                              googletag.pubads().setTargeting(name, persona[col]);
+                          if (typeof(googletag) == "object" && typeof(googletag.setConfig) == "function")
+                              googletag.setConfig({ targeting: { [name]: persona[col] } });
                           if (typeof(w.GA_googleAddAttr) == "function")
                               w.GA_googleAddAttr(name, persona[col]);
                       }
@@ -327,18 +327,24 @@
       ];
 
       
-      // Aplica os targets padrão
+      // Constrói o objeto de targeting e aplica via setConfig (API moderna do GPT)
+      const pageTargeting = {};
       targetingParams.forEach(param => {
         if (param.value !== null && param.value !== undefined) {
-          this.googletag.pubads().setTargeting(param.key, param.value);
+          pageTargeting[param.key] = param.value;
         }
       });
       
-      // Aplica os parâmetros UTM como targets
+      // Adiciona os parâmetros UTM ao targeting global
       if (this.config.captureUtmParams) {
         Object.entries(this.utmParams).forEach(([key, value]) => {
-          this.googletag.pubads().setTargeting(key, value);
+          pageTargeting[key] = value;
         });
+      }
+      
+      // Aplica todos os targets de página via setConfig (substitui pubads().setTargeting())
+      if (Object.keys(pageTargeting).length > 0) {
+        this.googletag.setConfig({ targeting: pageTargeting });
       }
     }
     
@@ -606,25 +612,28 @@
           slot.defineSizeMapping(sizeMapping.build());
         }
         
-        // Adiciona targeting para a posição base
-        slot.setTargeting('pos', config.position);
+        // Constrói o objeto de targeting do slot e aplica via setConfig (API moderna do GPT)
+        const slotTargeting = {
+          pos: config.position,
+          pos_index: config.positionWithIndex
+        };
         
-        // Adiciona targeting para a posição com índice sequencial
-        slot.setTargeting('pos_index', config.positionWithIndex);
-        
-        // Adiciona os parâmetros UTM como targeting para este slot
+        // Adiciona os parâmetros UTM ao targeting do slot
         if (this.config.captureUtmParams) {
           Object.entries(this.utmParams).forEach(([key, value]) => {
-            slot.setTargeting(key, value);
+            slotTargeting[key] = value;
           });
         }
         
-        // Adiciona targeting se disponível
+        // Adiciona targeting customizado do slot se disponível
         if (config.targeting) {
           Object.entries(config.targeting).forEach(([key, value]) => {
-            slot.setTargeting(key, value);
+            slotTargeting[key] = value;
           });
         }
+        
+        // Aplica todo o targeting do slot em uma única chamada (substitui slot.setTargeting())
+        slot.setConfig({ targeting: slotTargeting });
         
         // Adiciona o slot
         slot.addService(this.googletag.pubads());
