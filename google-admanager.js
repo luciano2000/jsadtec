@@ -206,21 +206,23 @@
             
             // Colapsa divs vazias se configurado (API moderna: setConfig)
             this.googletag.setConfig({
-              collapseDiv: this.config.collapseEmptyDivs ? {} : null
+              collapseDiv: this.config.collapseEmptyDivs ? { collapseBeforeAdFetch: false } : null
             });
-            
+
             // Requerimento estrito: desabilita o carregamento inicial APENAS se explicitamente solicitado
             // ATENÇÃO: Se disableInitialLoad for true, o LazyLoad nativo não renderiza automaticamente
             if (this.config.disableInitialLoad) {
               this.googletag.pubads().disableInitialLoad();
             }
-            
-            // Configura o LazyLoad nativo se habilitado
+
+            // Configura o LazyLoad nativo se habilitado (API moderna: setConfig)
             if (this.config.enableLazyLoad) {
-              this.googletag.pubads().enableLazyLoad({
-                fetchMarginPercent: this.config.fetchMarginPercent,
-                renderMarginPercent: this.config.renderMarginPercent,
-                mobileScaling: this.config.mobileScaling
+              this.googletag.setConfig({
+                lazyLoad: {
+                  fetchMarginPercent: this.config.fetchMarginPercent,
+                  renderMarginPercent: this.config.renderMarginPercent,
+                  mobileScaling: this.config.mobileScaling
+                }
               });
             }
             
