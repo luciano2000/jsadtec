@@ -205,8 +205,9 @@
             }
             
             // Colapsa divs vazias se configurado (API moderna: setConfig)
+            // 'ON_NO_FILL' = colapsa após fetch se não houver anúncio (equivale ao antigo collapseEmptyDivs())
             this.googletag.setConfig({
-              collapseDiv: this.config.collapseEmptyDivs ? { collapseBeforeAdFetch: false } : null
+              collapseDiv: this.config.collapseEmptyDivs ? 'ON_NO_FILL' : 'DISABLED'
             });
 
             // Requerimento estrito: desabilita o carregamento inicial APENAS se explicitamente solicitado
