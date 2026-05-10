@@ -204,10 +204,10 @@
               this.googletag.pubads().enableSingleRequest();
             }
             
-            // Colapsa divs vazias se configurado
-            if (this.config.collapseEmptyDivs) {
-              this.googletag.pubads().collapseEmptyDivs();
-            }
+            // Colapsa divs vazias se configurado (API moderna: setConfig)
+            this.googletag.setConfig({
+              collapseDiv: this.config.collapseEmptyDivs ? {} : null
+            });
             
             // Requerimento estrito: desabilita o carregamento inicial APENAS se explicitamente solicitado
             // ATENÇÃO: Se disableInitialLoad for true, o LazyLoad nativo não renderiza automaticamente
